@@ -1,0 +1,16 @@
+@charset "UTF-8";
+/* Estilos personalizados para HomeFlex */
+body {
+    font-family: 'Arial', sans-serif;
+}
+
+.navbar-brand {
+    font-weight: bold;
+}
+
+.footer {
+    margin-top: 50px;
+    padding: 20px 0;
+    background-color: #f8f9fa;
+    text-align: center;
+}

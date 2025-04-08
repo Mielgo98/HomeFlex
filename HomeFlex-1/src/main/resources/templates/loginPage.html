@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title>Login</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.5/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-SgOJa3DmI69IUzQ2PVdRZhwQ+dy64/BUtbMJw1MZ8t5HZApcHrRKUc4W0kG879m7" crossorigin="anonymous">
+</head>
+<body>
+  <div class="container">
+    <h2 class="mt-5">Iniciar Sesión</h2>
+    
+    <!-- Mensajes de error y logout -->
+    <div th:if="${errorMsg}" class="alert alert-danger" role="alert" th:text="${errorMsg}">
+      Error al iniciar sesión
+    </div>
+    <div th:if="${logoutMsg}" class="alert alert-success" role="alert" th:text="${logoutMsg}">
+      Sesión cerrada correctamente
+    </div>
+    <div th:if="${registroExitosoMsg}" class="alert alert-success" role="alert" th:text="${registroExitosoMsg}">
+      ¡Registro exitoso! Por favor, revisa tu correo electrónico para activar tu cuenta.
+    </div>
+    <div th:if="${disabledMsg}" class="alert alert-warning" role="alert" th:text="${disabledMsg}">
+      Tu cuenta no está activada. Por favor, revisa tu correo electrónico y sigue las instrucciones para activarla.
+    </div>
+    <div th:if="${param.registroExitoso}" class="alert alert-success" role="alert">
+      ¡Registro exitoso! Por favor, revisa tu correo electrónico para activar tu cuenta.
+    </div>
+    
+    <!-- Formulario de login para Spring Security -->
+    <form th:action="@{/login}" method="post">
+      <div class="mb-3">
+        <label for="username" class="form-label">Email</label>
+        <input type="email" name="username" class="form-control" id="username" placeholder="Ingresa tu email" required>
+      </div>
+      <div class="mb-3">
+        <label for="password" class="form-label">Contraseña</label>
+        <input type="password" name="password" class="form-control" id="password" placeholder="Ingresa tu contraseña" required>
+      </div>
+      <button type="submit" class="btn btn-primary">Entrar</button>
+    </form>
+    
+    <div class="mt-3">
+      <p>¿No tienes cuenta? <a th:href="@{/registro}">Regístrate aquí</a></p>
+    </div>
+  </div>
+  
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.5/dist/js/bootstrap.bundle.min.js" integrity="sha384-k6d4wzSIapyDyv1kpU366/PK5hCdSbCRGRCMv+eplOQJWyd1fbcAu9OCUj5zNLiq" crossorigin="anonymous"></script>
+</body>
+</html>
