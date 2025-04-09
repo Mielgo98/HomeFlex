@@ -1,10 +1,10 @@
-package com.example.demo.model.usuario;
+package com.example.demo.usuario.model;
 
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
 
-import com.example.demo.model.rol.RolVO;
+import com.example.demo.rol.model.RolVO;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

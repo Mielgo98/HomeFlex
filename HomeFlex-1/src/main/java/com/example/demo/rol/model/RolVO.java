@@ -1,9 +1,9 @@
-package com.example.demo.model.rol;
+package com.example.demo.rol.model;
 
 import java.util.HashSet;
 import java.util.Set;
 
-import com.example.demo.model.usuario.UsuarioVO;
+import com.example.demo.usuario.model.UsuarioVO;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import jakarta.persistence.Column;

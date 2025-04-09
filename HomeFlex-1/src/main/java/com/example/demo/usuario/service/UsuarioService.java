@@ -1,4 +1,4 @@
-package com.example.demo.service.usuario;
+package com.example.demo.usuario.service;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -8,12 +8,12 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.example.demo.model.rol.RolVO;
-import com.example.demo.model.usuario.RegistroDTO;
-import com.example.demo.model.usuario.UsuarioVO;
-import com.example.demo.repository.rol.RolRepository;
-import com.example.demo.repository.usuario.UsuarioRepository;
-import com.example.demo.service.email.EmailService;
+import com.example.demo.email.service.EmailService;
+import com.example.demo.rol.model.RolVO;
+import com.example.demo.rol.repository.RolRepository;
+import com.example.demo.usuario.model.RegistroDTO;
+import com.example.demo.usuario.model.UsuarioVO;
+import com.example.demo.usuario.repository.UsuarioRepository;
 
 import jakarta.mail.MessagingException;
 

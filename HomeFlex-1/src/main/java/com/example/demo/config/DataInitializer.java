@@ -11,10 +11,10 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.example.demo.model.rol.RolVO;
-import com.example.demo.model.usuario.UsuarioVO;
-import com.example.demo.repository.rol.RolRepository;
-import com.example.demo.repository.usuario.UsuarioRepository;
+import com.example.demo.rol.model.RolVO;
+import com.example.demo.rol.repository.RolRepository;
+import com.example.demo.usuario.model.UsuarioVO;
+import com.example.demo.usuario.repository.UsuarioRepository;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;

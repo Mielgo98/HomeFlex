@@ -1,11 +1,12 @@
-package com.example.demo.repository.usuario;
+package com.example.demo.usuario.repository;
 
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
-import com.example.demo.model.usuario.UsuarioVO;
+import com.example.demo.usuario.model.UsuarioVO;
+
 
 
 @Repository

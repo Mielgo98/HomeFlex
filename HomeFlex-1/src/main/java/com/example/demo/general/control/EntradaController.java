@@ -1,4 +1,4 @@
-package com.example.demo.control;
+package com.example.demo.general.control;
 
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;

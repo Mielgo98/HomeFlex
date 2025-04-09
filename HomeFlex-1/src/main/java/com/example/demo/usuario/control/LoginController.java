@@ -1,11 +1,11 @@
-package com.example.demo.control.usuario;
+package com.example.demo.usuario.control;
 
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
-import com.example.demo.model.usuario.LoginDTO;
+import com.example.demo.usuario.model.LoginDTO;
 
 @Controller
 public class LoginController {
