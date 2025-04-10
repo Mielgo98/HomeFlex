@@ -38,6 +38,7 @@ public class UsuarioService {
      */
     private UsuarioVO convertToUsuarioVO(RegistroDTO dto) {
         UsuarioVO usuario = new UsuarioVO();
+        usuario.setUsername(dto.getUsername());
         usuario.setEmail(dto.getEmail());
         // Se codifica la contraseña usando el PasswordEncoder
         usuario.setPassword(passwordEncoder.encode(dto.getPassword()));
@@ -68,6 +69,16 @@ public class UsuarioService {
     @Transactional
     public void registroUsuario(RegistroDTO registro) {
         try {
+            // Verificar si el username ya existe
+            if (usuarioRepository.findByUsername(registro.getUsername()).isPresent()) {
+                throw new RuntimeException("El nombre de usuario ya está en uso");
+            }
+            
+            // Verificar si el email ya existe
+            if (usuarioRepository.findUserEntityByEmail(registro.getEmail()).isPresent()) {
+                throw new RuntimeException("El email ya está registrado");
+            }
+            
             // Crear el usuario con los datos básicos
             UsuarioVO user = convertToUsuarioVO(registro);
             

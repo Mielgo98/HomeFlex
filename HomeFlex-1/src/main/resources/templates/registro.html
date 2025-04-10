@@ -16,10 +16,20 @@
     
     <form th:action="@{/registro}" th:object="${registroDTO}" method="post">
       <div class="mb-3">
+        <label for="username" class="form-label">Nombre de usuario</label>
+        <input type="text" th:field="*{username}" class="form-control" id="username" placeholder="Ingresa tu nombre de usuario" required>
+        <div class="text-danger" th:if="${#fields.hasErrors('username')}" th:errors="*{username}"></div>
+        <small class="form-text text-muted">
+          El nombre de usuario debe tener entre 4 y 50 caracteres y solo puede contener letras, números, puntos, guiones y guiones bajos.
+        </small>
+      </div>
+
+      <div class="mb-3">
         <label for="email" class="form-label">Email</label>
         <input type="email" th:field="*{email}" class="form-control" id="email" placeholder="Ingresa tu email" required>
         <div class="text-danger" th:if="${#fields.hasErrors('email')}" th:errors="*{email}"></div>
       </div>
+      
       <div class="mb-3">
         <label for="password" class="form-label">Contraseña</label>
         <input type="password" th:field="*{password}" class="form-control" id="password" placeholder="Ingresa tu contraseña" required>
@@ -28,16 +38,19 @@
           La contraseña debe tener al menos 8 caracteres, incluir una letra mayúscula, una minúscula, un número y un carácter especial.
         </small>
       </div>
+      
       <div class="mb-3">
         <label for="nombre" class="form-label">Nombre</label>
         <input type="text" th:field="*{nombre}" class="form-control" id="nombre" placeholder="Ingresa tu nombre" required>
         <div class="text-danger" th:if="${#fields.hasErrors('nombre')}" th:errors="*{nombre}"></div>
       </div>
+      
       <div class="mb-3">
         <label for="apellidos" class="form-label">Apellidos</label>
         <input type="text" th:field="*{apellidos}" class="form-control" id="apellidos" placeholder="Ingresa tus apellidos" required>
         <div class="text-danger" th:if="${#fields.hasErrors('apellidos')}" th:errors="*{apellidos}"></div>
       </div>
+      
       <div class="mb-3">
         <label for="telefono" class="form-label">Teléfono</label>
         <input type="text" th:field="*{telefono}" class="form-control" id="telefono" placeholder="Ingresa tu teléfono (ej: 666555444)" required>
@@ -46,6 +59,7 @@
           El teléfono debe comenzar con 6, 7, 8 o 9 y tener 9 dígitos en total (formato español).
         </small>
       </div>
+      
       <button type="submit" class="btn btn-primary">Registrarse</button>
       <a th:href="@{/login}" class="btn btn-secondary ms-2">Volver al Login</a>
     </form>

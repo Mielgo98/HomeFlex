@@ -7,11 +7,9 @@ import org.springframework.stereotype.Repository;
 
 import com.example.demo.usuario.model.UsuarioVO;
 
-
-
 @Repository
 public interface UsuarioRepository extends JpaRepository<UsuarioVO, Long> {
-	public Optional<UsuarioVO> findUserEntityByEmail(String email);
-	
-	 Optional<UsuarioVO> findByTokenVerificacion(String token);
+    Optional<UsuarioVO> findUserEntityByEmail(String email);
+    Optional<UsuarioVO> findByUsername(String username);
+    Optional<UsuarioVO> findByTokenVerificacion(String token);
 }

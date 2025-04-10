@@ -20,9 +20,9 @@ public class UsuarioDetailServiceImpl implements UserDetailsService {
     private UsuarioRepository usuarioRepository;
     
     @Override
-    public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
+    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         
-        UsuarioVO usuarioVO = this.usuarioRepository.findUserEntityByEmail(email)
+        UsuarioVO usuarioVO = this.usuarioRepository.findByUsername(username)
                 .orElseThrow(() -> new UsernameNotFoundException("El nombre de usuario no existe"));
         
         List<SimpleGrantedAuthority> authorityList = new ArrayList<>();
@@ -31,7 +31,7 @@ public class UsuarioDetailServiceImpl implements UserDetailsService {
         );
         
         return new User(
-                usuarioVO.getEmail(),
+                usuarioVO.getUsername(),
                 usuarioVO.getPassword(),
                 usuarioVO.getIsEnabled(),           // habilitado
                 usuarioVO.getAccountNonExpired(),   // cuenta no expirada
