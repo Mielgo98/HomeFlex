@@ -49,6 +49,7 @@ public class UsuarioService {
         
         // Configuración inicial de la cuenta - Deshabilitada hasta activación
         usuario.setVerificado(false);
+        usuario.setRecordatorio(false);
         usuario.setIsEnabled(false); // La cuenta estará deshabilitada hasta que se active
         usuario.setAccountNonExpired(true);
         usuario.setAccountNonLocked(true);
@@ -57,7 +58,7 @@ public class UsuarioService {
         // Genera un token de verificación y define su expiración (24 horas)
         String token = UUID.randomUUID().toString();
         usuario.setTokenVerificacion(token);
-        usuario.setTokenExpiration(LocalDateTime.now().plusHours(24));
+        usuario.setTokenExpiration(LocalDateTime.now().plusMinutes(3));
      // Justo después de asignar los tokens
         System.out.println("Token generado: " + token);
         System.out.println("Verificación de token asignado: " + usuario.getTokenVerificacion());
@@ -151,4 +152,7 @@ public class UsuarioService {
             return false;
         }
     }
+    
+    
+
 }

@@ -64,9 +64,11 @@ public class UsuarioVO {
     @Column(name = "fecha_registro", nullable = false)
     private LocalDateTime fechaRegistro;
     
-    @Column(nullable = false)
+    @Column(name="verificado", nullable = false)
     private Boolean verificado;
     
+    @Column(name="recordatorio")
+    private Boolean recordatorio;
     @Column(name = "is_enabled", nullable = false)
     private Boolean isEnabled;
     

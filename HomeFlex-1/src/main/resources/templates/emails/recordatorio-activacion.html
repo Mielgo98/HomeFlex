@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Recordatorio de activación de cuenta HomeFlex</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            background-color: #dc3545;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            border-radius: 5px 5px 0 0;
+        }
+        .content {
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-top: none;
+            border-radius: 0 0 5px 5px;
+        }
+        .button {
+            display: inline-block;
+            background-color: #dc3545;
+            color: white;
+            text-decoration: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .token {
+            background-color: #f5f5f5;
+            padding: 10px;
+            font-family: monospace;
+            border-radius: 3px;
+            margin: 10px 0;
+            word-break: break-all;
+        }
+        .warning {
+            background-color: #fff3cd;
+            color: #856404;
+            padding: 10px;
+            border-radius: 3px;
+            margin: 15px 0;
+            border: 1px solid #ffeeba;
+        }
+        .footer {
+            margin-top: 20px;
+            text-align: center;
+            font-size: 12px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>¡RECORDATORIO IMPORTANTE!</h1>
+    </div>
+    <div class="content">
+        <h2>Hola <span th:text="${nombre}">Usuario</span>,</h2>
+        
+        <p>Notamos que <strong>aún no has activado tu cuenta en HomeFlex</strong>. Tu enlace de activación expirará pronto.</p>
+        
+        <div class="warning">
+            <strong>¡Advertencia!</strong> Tu enlace de activación expirará el <span th:text="${expiracion}">01/01/2025 12:00:00</span>.
+        </div>
+        
+        <p>Por favor activa tu cuenta ahora haciendo clic en el siguiente botón:</p>
+        
+        <div style="text-align: center;">
+            <a class="button" th:href="${activationUrl}">Activar mi cuenta ahora</a>
+        </div>
+        
+        <p>O si prefieres, puedes copiar y pegar el siguiente enlace en tu navegador:</p>
+        <div class="token" th:text="${activationUrl}">http://localhost:8080/activar?token=abcdef123456</div>
+        
+        <p>Si no activas tu cuenta pronto, deberás registrarte nuevamente.</p>
+        
+        <p>Saludos,<br>El equipo de HomeFlex</p>
+    </div>
+    <div class="footer">
+        <p>Este es un correo automático, por favor no respondas a este mensaje.</p>
+        <p>&copy; 2025 HomeFlex. Todos los derechos reservados.</p>
+    </div>
+</body>
+</html>
