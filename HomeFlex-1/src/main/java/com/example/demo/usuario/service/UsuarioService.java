@@ -58,7 +58,10 @@ public class UsuarioService {
         String token = UUID.randomUUID().toString();
         usuario.setTokenVerificacion(token);
         usuario.setTokenExpiration(LocalDateTime.now().plusHours(24));
-        
+     // Justo después de asignar los tokens
+        System.out.println("Token generado: " + token);
+        System.out.println("Verificación de token asignado: " + usuario.getTokenVerificacion());
+        System.out.println("Expiración establecida: " + usuario.getTokenExpiration());
         return usuario;
     }
     

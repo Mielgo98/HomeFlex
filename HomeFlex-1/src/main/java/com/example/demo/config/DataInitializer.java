@@ -53,9 +53,6 @@ public class DataInitializer implements CommandLineRunner {
         // Crear usuario super administrador
         createSuperAdminUserIfNotExists();
         
-        // Crear usuario administrador normal
-        createAdminUserIfNotExists();
-        
         System.out.println("==================================================");
         System.out.println("INICIALIZACIÓN DE DATOS COMPLETADA");
         System.out.println("==================================================");
@@ -109,6 +106,7 @@ public class DataInitializer implements CommandLineRunner {
                 
                 // Crear el usuario super admin
                 UsuarioVO superAdmin = new UsuarioVO();
+                superAdmin.setUsername("superAdmin");
                 superAdmin.setEmail("superadmin@homeflex.com");
                 superAdmin.setPassword(passwordEncoder.encode("SuperAdmin2025"));
                 superAdmin.setNombre("Super");
@@ -147,57 +145,5 @@ public class DataInitializer implements CommandLineRunner {
         System.out.println("--------------------------------------------------");
     }
     
-    @Transactional
-    private void createAdminUserIfNotExists() {
-        System.out.println("--------------------------------------------------");
-        System.out.println("CREACIÓN DE USUARIO ADMINISTRADOR");
-        System.out.println("--------------------------------------------------");
-        
-        Optional<UsuarioVO> existingAdmin = usuarioRepository.findUserEntityByEmail("admin@homeflex.com");
-        
-        if (existingAdmin.isEmpty()) {
-            try {
-                // Buscar el rol ADMIN
-                RolVO rolAdmin = rolRepository.findByNombre("ADMIN")
-                        .orElseThrow(() -> new RuntimeException("El rol ADMIN no se encuentra en la base de datos"));
-                
-                // Crear el usuario admin
-                UsuarioVO admin = new UsuarioVO();
-                admin.setEmail("admin@homeflex.com");
-                admin.setPassword(passwordEncoder.encode("Admin2025"));
-                admin.setNombre("Administrador");
-                admin.setApellidos("HomeFlex");
-                admin.setTelefono("666111222");
-                admin.setFechaRegistro(LocalDateTime.now());
-                
-                // Estados de la cuenta
-                admin.setVerificado(true);
-                admin.setIsEnabled(true);
-                admin.setAccountNonExpired(true);
-                admin.setAccountNonLocked(true);
-                admin.setCredentialsNonExpired(true);
-                
-                // Asignar rol ADMIN
-                Set<RolVO> roles = new HashSet<>();
-                roles.add(rolAdmin);
-                admin.setRoles(roles);
-                
-                // Guardar el usuario
-                usuarioRepository.save(admin);
-                entityManager.flush();
-                
-                System.out.println("✅ Usuario administrador creado exitosamente");
-                System.out.println("   Email: admin@homeflex.com");
-                System.out.println("   Contraseña: SuperAdmin");
-                
-            } catch (Exception e) {
-                System.err.println("❌ Error al crear usuario administrador: " + e.getMessage());
-                e.printStackTrace();
-            }
-        } else {
-            System.out.println("ℹ️ El usuario administrador ya existe en la base de datos");
-        }
-        
-        System.out.println("--------------------------------------------------");
-    }
+   
 }
