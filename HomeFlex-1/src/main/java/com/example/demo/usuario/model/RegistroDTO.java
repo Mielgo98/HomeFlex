@@ -32,6 +32,9 @@ public class RegistroDTO {
             message = "La contraseña debe contener al menos un número, una mayúscula, una minúscula y un caracter especial")
     private String password;
     
+    @NotBlank(message = "La confirmación de contraseña es obligatoria")
+    private String confirmPassword;
+    
     @NotBlank(message = "El nombre es obligatorio")
     @Size(min = 2, max = 50, message = "El nombre debe tener entre 2 y 50 caracteres")
     private String nombre;
