@@ -3,6 +3,7 @@ package com.example.demo.security;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.ProviderManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
@@ -24,11 +25,11 @@ import java.util.Collections;
 
 /**
  * Configuración de seguridad para la aplicación
- * Combina autenticación basada en formularios para la web y JWT para la API
+ * Separamos la configuración para la interfaz web y la API REST
  */
 @Configuration
 @EnableWebSecurity
-@EnableMethodSecurity // Habilita anotaciones de seguridad como @PreAuthorize
+@EnableMethodSecurity
 public class SecurityConfig {
     
     @Autowired
@@ -37,14 +38,13 @@ public class SecurityConfig {
     @Autowired
     private UserDetailsService userDetailsService;
     
-    @Autowired
-    private JwtAuthenticationFilter jwtAuthenticationFilter;
-    
-    @Autowired
-    private JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
     
     /**
-     * Configura el proveedor de autenticación
+     * Configura el proveedor de autenticación común
      */
     @Bean
     public DaoAuthenticationProvider authenticationProvider() {
@@ -55,7 +55,7 @@ public class SecurityConfig {
     }
     
     /**
-     * Configura el gestor de autenticación
+     * Configura el gestor de autenticación común
      */
     @Bean
     public AuthenticationManager authenticationManager() {
@@ -63,68 +63,85 @@ public class SecurityConfig {
     }
     
     /**
-     * Configura la cadena de filtros de seguridad
+     * Configuración para la interfaz web (basada en formularios y sesiones)
      */
-    @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        http
-            // Deshabilitar CSRF para APIs RESTful
-            .csrf(AbstractHttpConfigurer::disable)
-            
-            // Configurar reglas de autorización de peticiones
-            .authorizeHttpRequests(authorize -> authorize
-                // Rutas públicas para la web
-                .requestMatchers("/", "/login", "/registro", "/activar", "/css/**", "/js/**", "/images/**").permitAll()
-                // Rutas públicas para la API
-                .requestMatchers("/api/auth/**", "/api/test/all").permitAll()
-                // Rutas protegidas para la API
-                .requestMatchers("/api/**").authenticated()
-                // Rutas web para usuarios autenticados
-                .requestMatchers("/dashboard/**").authenticated()
-                // Cualquier otra petición requiere autenticación
-                .anyRequest().authenticated()
-            )
-            
-            // Configuración de login basado en formularios (para la web)
-            .formLogin(form -> form
-                .loginPage("/login")
-                .failureHandler(authenticationFailureHandler)
-                .defaultSuccessUrl("/dashboard")
-                .permitAll()
-            )
-            
-            // Configuración de logout
-            .logout(logout -> logout
-                .logoutUrl("/logout")
-                .logoutSuccessUrl("/login?logout")
-                .permitAll()
-            )
-            
-            // Configuración para API REST con JWT
-            .sessionManagement(session -> session
-                // Sin estado para APIs (no mantener sesión)
-                .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-            )
-            
-            // Configurar manejo de excepciones
-            .exceptionHandling(exceptions -> exceptions
-                .authenticationEntryPoint(jwtAuthenticationEntryPoint)
-            )
-            
-            // Configurar proveedor de autenticación
-            .authenticationProvider(authenticationProvider())
-            
-            // Añadir filtro JWT antes del filtro de autenticación estándar
-            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+    @Configuration
+    @Order(1) // Primera cadena de filtros a evaluar
+    public static class WebSecurityConfig {
         
-        return http.build();
+        @Autowired
+        private CustomAuthenticationFailureHandler authenticationFailureHandler;
+        
+        @Autowired
+        private DaoAuthenticationProvider authenticationProvider;
+        
+        @Bean
+        public SecurityFilterChain webSecurityFilterChain(HttpSecurity http) throws Exception {
+            http
+                .securityMatcher("/**") // Aplicar a todas las rutas excepto /api/**
+                .authorizeHttpRequests(authorize -> authorize
+                	    // Rutas públicas
+                	    .requestMatchers("/", "/login", "/registro", "/activar", "/cuenta-eliminada", "/css/**", "/js/**", "/images/**").permitAll()
+                	    // Rutas protegidas
+                	    .requestMatchers("/dashboard/**", "/perfil/**").authenticated()
+                	    .anyRequest().authenticated()
+                	)
+                .formLogin(form -> form
+                    .loginPage("/login")
+                    .failureHandler(authenticationFailureHandler)
+                    .defaultSuccessUrl("/dashboard")
+                    .permitAll()
+                )
+                .logout(logout -> logout
+                    .logoutUrl("/logout")
+                    .logoutSuccessUrl("/login?logout")
+                    .invalidateHttpSession(true)
+                    .deleteCookies("JSESSIONID")
+                    .permitAll()
+                )
+                .authenticationProvider(authenticationProvider);
+            
+            return http.build();
+        }
     }
     
     /**
-     * Configurar codificador de contraseñas
+     * Configuración para la API REST (basada en JWT)
      */
-    @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
+    @Configuration
+    @Order(2) // Segunda cadena de filtros a evaluar
+    public static class ApiSecurityConfig {
+        
+        @Autowired
+        private JwtAuthenticationFilter jwtAuthenticationFilter;
+        
+        @Autowired
+        private JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
+        
+        @Autowired
+        private DaoAuthenticationProvider authenticationProvider;
+        
+        @Bean
+        public SecurityFilterChain apiSecurityFilterChain(HttpSecurity http) throws Exception {
+            http
+                .securityMatcher("/api/**") // Aplicar solo a /api/**
+                .csrf(AbstractHttpConfigurer::disable)
+                .authorizeHttpRequests(authorize -> authorize
+                    // Rutas públicas de la API
+                    .requestMatchers("/api/auth/**").permitAll()
+                    // Cualquier otra ruta de la API requiere autenticación
+                    .anyRequest().authenticated()
+                )
+                .sessionManagement(session -> session
+                    .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                )
+                .exceptionHandling(exceptions -> exceptions
+                    .authenticationEntryPoint(jwtAuthenticationEntryPoint)
+                )
+                .authenticationProvider(authenticationProvider)
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+            
+            return http.build();
+        }
     }
 }

@@ -4,6 +4,8 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -11,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.example.demo.email.service.EmailService;
 import com.example.demo.rol.model.RolVO;
 import com.example.demo.rol.repository.RolRepository;
+import com.example.demo.usuario.model.PerfilDTO;
 import com.example.demo.usuario.model.RegistroDTO;
 import com.example.demo.usuario.model.UsuarioVO;
 import com.example.demo.usuario.repository.UsuarioRepository;
@@ -153,6 +156,131 @@ public class UsuarioService {
         }
     }
     
-    
+    /**
+     * Busca un usuario por su nombre de usuario
+     * @param username Nombre de usuario a buscar
+     * @return El objeto UsuarioVO si se encuentra
+     * @throws RuntimeException si el usuario no existe
+     */
+    public UsuarioVO buscarPorUsername(String username) {
+        return usuarioRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+    }
 
+    /**
+     * Actualiza la información del perfil de un usuario
+     * @param perfilDTO Datos del perfil a actualizar
+     * @return El usuario actualizado
+     * @throws RuntimeException si hay errores durante la actualización
+     */
+    @Transactional
+    public UsuarioVO actualizarPerfil(PerfilDTO perfilDTO) {
+        try {
+            // Buscar el usuario por ID
+            UsuarioVO usuario = usuarioRepository.findById(perfilDTO.getId())
+                    .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+            
+            // Verificar que solo el propio usuario pueda modificar su perfil
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            String usernameActual = auth.getName();
+            
+            if (!usuario.getUsername().equals(usernameActual)) {
+                throw new RuntimeException("No tienes permiso para modificar este perfil");
+            }
+            
+            // Actualizar solo los campos permitidos
+            usuario.setNombre(perfilDTO.getNombre());
+            usuario.setApellidos(perfilDTO.getApellidos());
+            usuario.setTelefono(perfilDTO.getTelefono());
+            
+            // Actualizar foto de perfil si se proporciona
+            if (perfilDTO.getFotoPerfil() != null && !perfilDTO.getFotoPerfil().isEmpty()) {
+                usuario.setFotoPerfil(perfilDTO.getFotoPerfil());
+            }
+            
+            // Guardar los cambios
+            return usuarioRepository.save(usuario);
+            
+        } catch (Exception e) {
+            throw new RuntimeException("Error al actualizar el perfil: " + e.getMessage());
+        }
+    }
+
+    
+    /**
+     * Cambia la contraseña de un usuario verificando primero la contraseña actual
+     * @param passwordActual Contraseña actual del usuario
+     * @param passwordNueva Nueva contraseña
+     * @throws RuntimeException si la contraseña actual no es correcta o hay otro error
+     */
+    @Transactional
+    public void cambiarPassword(String passwordActual, String passwordNueva) {
+        try {
+            // Obtener el usuario autenticado
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            String username = auth.getName();
+            
+            // Buscar el usuario en la base de datos
+            UsuarioVO usuario = usuarioRepository.findByUsername(username)
+                    .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+            
+            // Verificar que la contraseña actual sea correcta
+            if (!passwordEncoder.matches(passwordActual, usuario.getPassword())) {
+                throw new RuntimeException("La contraseña actual no es correcta");
+            }
+            
+            // Verificar que la nueva contraseña no sea igual a la actual
+            if (passwordEncoder.matches(passwordNueva, usuario.getPassword())) {
+                throw new RuntimeException("La nueva contraseña debe ser diferente a la actual");
+            }
+            
+            // Codificar y establecer la nueva contraseña
+            String encodedPassword = passwordEncoder.encode(passwordNueva);
+            usuario.setPassword(encodedPassword);
+            
+            // Guardar los cambios
+            usuarioRepository.save(usuario);
+            
+            System.out.println("Contraseña actualizada correctamente para el usuario: " + username);
+            
+        } catch (Exception e) {
+            throw new RuntimeException("Error al cambiar la contraseña: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * Da de baja a un usuario del sistema verificando su contraseña primero
+     * @param password Contraseña del usuario para confirmar la operación
+     * @return true si se ha eliminado con éxito
+     * @throws RuntimeException si la contraseña no es correcta o hay otro error
+     */
+    @Transactional
+    public boolean darDeBajaUsuario(String password) {
+        try {
+            // Obtener el usuario autenticado
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            String username = auth.getName();
+            
+            // Buscar el usuario en la base de datos
+            UsuarioVO usuario = usuarioRepository.findByUsername(username)
+                    .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+            
+            // Verificar que la contraseña sea correcta
+            if (!passwordEncoder.matches(password, usuario.getPassword())) {
+                throw new RuntimeException("La contraseña proporcionada no es correcta");
+            }
+            
+            // Eliminar el usuario
+            usuarioRepository.delete(usuario);
+            
+            // Cerrar la sesión del usuario
+            SecurityContextHolder.clearContext();
+            
+            System.out.println("Usuario eliminado correctamente: " + username);
+            return true;
+            
+        } catch (Exception e) {
+            throw new RuntimeException("Error al dar de baja al usuario: " + e.getMessage());
+        }
+    }
 }

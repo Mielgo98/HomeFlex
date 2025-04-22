@@ -20,6 +20,17 @@
         <input type="email" th:field="*{email}" class="form-control" id="email" placeholder="Ingresa tu email" required>
         <div class="text-danger" th:if="${#fields.hasErrors('email')}" th:errors="*{email}"></div>
       </div>
+      
+      <!-- Nuevo campo para username -->
+      <div class="mb-3">
+        <label for="username" class="form-label">Nombre de usuario</label>
+        <input type="text" th:field="*{username}" class="form-control" id="username" placeholder="Ingresa tu nombre de usuario" required>
+        <div class="text-danger" th:if="${#fields.hasErrors('username')}" th:errors="*{username}"></div>
+        <small class="form-text text-muted">
+          El nombre de usuario debe tener entre 4 y 50 caracteres, y solo puede contener letras, números, puntos, guiones y guiones bajos.
+        </small>
+      </div>
+      
       <div class="mb-3">
         <label for="password" class="form-label">Contraseña</label>
         <input type="password" th:field="*{password}" class="form-control" id="password" placeholder="Ingresa tu contraseña" required>
