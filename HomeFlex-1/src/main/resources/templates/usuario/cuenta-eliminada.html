@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title>Cuenta Eliminada - HomeFlex</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.5/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-SgOJa3DmI69IUzQ2PVdRZhwQ+dy64/BUtbMJw1MZ8t5HZApcHrRKUc4W0kG879m7" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+</head>
+<body>
+  <div class="container mt-5">
+    <div class="row justify-content-center">
+      <div class="col-md-8 text-center">
+        <div class="card border-success">
+          <div class="card-header bg-success text-white">
+            <h4 class="mb-0"><i class="bi bi-check-circle-fill"></i> Cuenta Eliminada Correctamente</h4>
+          </div>
+          <div class="card-body">
+            <div class="mb-4">
+              <i class="bi bi-person-x-fill text-success" style="font-size: 5rem;"></i>
+            </div>
+            
+            <h5 class="card-title">¡Tu cuenta ha sido eliminada con éxito!</h5>
+            <p class="card-text">
+              Todos tus datos personales han sido eliminados de nuestra plataforma. 
+              Esperamos que hayas disfrutado de tu tiempo en HomeFlex.
+            </p>
+            
+            <p class="card-text mt-3">
+              Si en algún momento deseas volver a utilizar nuestros servicios, siempre serás bienvenido a registrarte nuevamente.
+            </p>
+            
+            <div class="mt-4">
+              <a th:href="@{/}" class="btn btn-primary">
+                <i class="bi bi-house-door"></i> Volver a la Página Principal
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="footer mt-5 py-3 bg-light fixed-bottom">
+    <div class="container text-center">
+      <span class="text-muted">© 2025 HomeFlex - Todos los derechos reservados</span>
+    </div>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.5/dist/js/bootstrap.bundle.min.js" integrity="sha384-k6d4wzSIapyDyv1kpU366/PK5hCdSbCRGRCMv+eplOQJWyd1fbcAu9OCUj5zNLiq" crossorigin="anonymous"></script>
+</body>
+</html>
