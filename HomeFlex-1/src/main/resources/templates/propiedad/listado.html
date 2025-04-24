@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" 
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+  <meta charset="UTF-8">
+  <title>Propiedades - HomeFlex</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.5/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-SgOJa3DmI69IUzQ2PVdRZhwQ+dy64/BUtbMJw1MZ8t5HZApcHrRKUc4W0kG879m7" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+  <style>
+    .card-img-top {
+      height: 200px;
+      object-fit: cover;
+    }
+    .property-card {
+      transition: transform 0.3s;
+    }
+    .property-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+  </style>
+</head>
+<body>
+  <!-- Navegación -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+    <div class="container">
+      <a class="navbar-brand" th:href="@{/}">HomeFlex</a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+        aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav me-auto">
+          <li class="nav-item">
+            <a class="nav-link active" th:href="@{/propiedades}">
+              <i class="bi bi-house"></i> Propiedades
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" th:href="@{/propiedades/buscar}">
+              <i class="bi bi-search"></i> Buscar
+            </a>
+          </li>
+        </ul>
+        <ul class="navbar-nav">
+          <li class="nav-item" sec:authorize="isAuthenticated()">
+            <a class="nav-link" th:href="@{/propiedades/mis-propiedades}">
+              <i class="bi bi-buildings"></i> Mis Propiedades
+            </a>
+          </li>
+          <li class="nav-item" sec:authorize="isAuthenticated()">
+            <a class="nav-link" th:href="@{/perfil}">
+              <i class="bi bi-person-circle"></i> Mi Perfil
+            </a>
+          </li>
+          <li class="nav-item" sec:authorize="isAuthenticated()">
+            <form th:action="@{/logout}" method="post">
+              <button type="submit" class="btn btn-link nav-link">
+                <i class="bi bi-box-arrow-right"></i> Cerrar Sesión
+              </button>
+            </form>
+          </li>
+          <li class="nav-item" sec:authorize="!isAuthenticated()">
+            <a class="nav-link" th:href="@{/login}">
+              <i class="bi bi-box-arrow-in-right"></i> Iniciar Sesión
+            </a>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Contenido principal -->
+  <div class="container mt-4">
+    <div class="row mb-4">
+      <div class="col-md-8">
+        <h2><i class="bi bi-houses"></i> Propiedades disponibles</h2>
+        <p>Encuentra el alojamiento perfecto para tu próxima estancia.</p>
+      </div>
+      <div class="col-md-4 text-end">
+        <a th:href="@{/propiedades/buscar}" class="btn btn-primary me-2">
+          <i class="bi bi-search"></i> Búsqueda avanzada
+        </a>
+        <a th:href="@{/propiedades/nueva}" class="btn btn-success" sec:authorize="hasRole('ROLE_PROPIETARIO')">
+          <i class="bi bi-plus-circle"></i> Nueva propiedad
+        </a>
+      </div>
+    </div>
+
+    <!-- Mensajes de éxito o error -->
+    <div class="row" th:if="${mensaje != null || error != null}">
+      <div class="col-12">
+        <div th:if="${mensaje}" class="alert alert-success alert-dismissible fade show" role="alert">
+          <i class="bi bi-check-circle-fill me-2"></i> <span th:text="${mensaje}">Operación exitosa</span>
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        <div th:if="${error}" class="alert alert-danger alert-dismissible fade show" role="alert">
+          <i class="bi bi-exclamation-triangle-fill me-2"></i> <span th:text="${error}">Error</span>
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Propiedades -->
+    <div class="row" th:if="${!propiedades.isEmpty()}">
+      <div class="col-md-4 mb-4" th:each="propiedad : ${propiedades}">
+        <div class="card property-card h-100">
+          <img th:src="${propiedad.fotoPrincipal}" class="card-img-top" alt="Imagen de la propiedad">
+          <div class="card-body">
+            <h5 class="card-title" th:text="${propiedad.titulo}">Título de la propiedad</h5>
+            <p class="card-text">
+              <i class="bi bi-geo-alt-fill text-primary"></i> 
+              <span th:text="${propiedad.ciudad + ', ' + propiedad.pais}">Ciudad, País</span>
+            </p>
+            <p class="card-text">
+              <i class="bi bi-person-fill"></i> <span th:text="${propiedad.capacidad}">4</span> huéspedes | 
+              <i class="bi bi-door-closed-fill"></i> <span th:text="${propiedad.dormitorios}">2</span> dormitorios | 
+              <i class="bi bi-droplet-fill"></i> <span th:text="${propiedad.banos}">1</span> baños
+            </p>
+            <p class="card-text fw-bold">
+              <i class="bi bi-currency-euro"></i> <span th:text="${#numbers.formatDecimal(propiedad.precioDia, 0, 'POINT', 2, 'COMMA')}">50,00</span> / noche
+            </p>
+          </div>
+          <div class="card-footer bg-white border-top-0">
+            <a th:href="@{/propiedades/{id}(id=${propiedad.id})}" class="btn btn-primary w-100">
+              <i class="bi bi-info-circle"></i> Ver detalles
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mensaje si no hay propiedades -->
+    <div class="row" th:if="${propiedades.isEmpty()}">
+      <div class="col-12">
+        <div class="alert alert-info" role="alert">
+          <i class="bi bi-info-circle-fill me-2"></i> No hay propiedades disponibles en este momento.
+        </div>
+      </div>
+    </div>
+
+    <!-- Paginación -->
+    <div class="row mt-4" th:if="${totalPaginas > 1}">
+      <div class="col-12">
+        <nav aria-label="Navegación de páginas">
+          <ul class="pagination justify-content-center">
+            <li class="page-item" th:classappend="${paginaActual == 0 ? 'disabled' : ''}">
+              <a class="page-link" th:href="@{/propiedades(pagina=${paginaActual - 1})}" aria-label="Anterior">
+                <span aria-hidden="true">&laquo; Anterior</span>
+              </a>
+            </li>
+            <li class="page-item" th:each="i : ${#numbers.sequence(0, totalPaginas - 1)}" 
+                th:classappend="${i == paginaActual ? 'active' : ''}">
+              <a class="page-link" th:href="@{/propiedades(pagina=${i})}" th:text="${i + 1}">1</a>
+            </li>
+            <li class="page-item" th:classappend="${paginaActual == totalPaginas - 1 ? 'disabled' : ''}">
+              <a class="page-link" th:href="@{/propiedades(pagina=${paginaActual + 1})}" aria-label="Siguiente">
+                <span aria-hidden="true">Siguiente &raquo;</span>
+              </a>
+            </li>
+          </ul>
+        </nav>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="footer mt-5 py-3 bg-light">
+    <div class="container text-center">
+      <span class="text-muted">© 2025 HomeFlex - Todos los derechos reservados</span>
+    </div>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.5/dist/js/bootstrap.bundle.min.js" integrity="sha384-k6d4wzSIapyDyv1kpU366/PK5hCdSbCRGRCMv+eplOQJWyd1fbcAu9OCUj5zNLiq" crossorigin="anonymous"></script>
+</body>
+</html>

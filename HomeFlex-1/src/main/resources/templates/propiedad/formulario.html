@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" 
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+  <meta charset="UTF-8">
+  <title th:text="${esNueva ? 'Nueva Propiedad' : 'Editar Propiedad'} + ' - HomeFlex'">Nueva Propiedad - HomeFlex</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.5/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-SgOJa3DmI69IUzQ2PVdRZhwQ+dy64/BUtbMJw1MZ8t5HZApcHrRKUc4W0kG879m7" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+  <style>
+    #map {
+      height: 300px;
+      width: 100%;
+      border-radius: 0.25rem;
+    }
+    .thumbnail-preview {
+      position: relative;
+      margin-right: 10px;
+      margin-bottom: 10px;
+      display: inline-block;
+    }
+    .thumbnail {
+      width: 100px;
+      height: 100px;
+      object-fit: cover;
+      border-radius: 4px;
+      border: 1px solid #dee2e6;
+    }
+    .remove-photo {
+      position: absolute;
+      top: -10px;
+      right: -10px;
+      background: red;
+      color: white;
+      border-radius: 50%;
+      width: 25px;
+      height: 25px;
+      text-align: center;
+      line-height: 25px;
+      cursor: pointer;
+    }
+    .main-photo-badge {
+      position: absolute;
+      top: 5px;
+      left: 5px;
+      background: rgba(13, 110, 253, 0.8);
+      color: white;
+      border-radius: 4px;
+      padding: 2px 5px;
+      font-size: 10px;
+    }
+    .photo-actions {
+      position: absolute;
+      bottom: 5px;
+      right: 5px;
+      background: rgba(255, 255, 255, 0.8);
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+  <!-- Navegación -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+    <div class="container">
+      <a class="navbar-brand" th:href="@{/}">HomeFlex</a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+        aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav me-auto">
+          <li class="nav-item">
+            <a class="nav-link" th:href="@{/propiedades}">
+              <i class="bi bi-house"></i> Propiedades
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" th:href="@{/propiedades/mis-propiedades}">
+              <i class="bi bi-buildings"></i> Mis Propiedades
+            </a>
+          </li>
+        </ul>
+        <ul class="navbar-nav">
+          <li class="nav-item">
+            <a class="nav-link" th:href="@{/perfil}">
+              <i class="bi bi-person-circle"></i> Mi Perfil
+            </a>
+          </li>
+          <li class="nav-item">
+            <form th:action="@{/logout}" method="post">
+              <button type="submit" class="btn btn-link nav-link">
+                <i class="bi bi-box-arrow-right"></i> Cerrar Sesión
+              </button>
+            </form>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Contenido principal -->
+  <div class="container mt-4">
+    <div class="row mb-4">
+      <div class="col-12">
+        <h2 th:text="${esNueva ? 'Nueva Propiedad' : 'Editar Propiedad'}">
+          <i class="bi" th:classappend="${esNueva ? 'bi-plus-circle' : 'bi-pencil-square'}"></i>
+          Nueva Propiedad
+        </h2>
+        <nav aria-label="breadcrumb">
+          <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a th:href="@{/propiedades}">Propiedades</a></li>
+            <li class="breadcrumb-item"><a th:href="@{/propiedades/mis-propiedades}">Mis Propiedades</a></li>
+            <li class="breadcrumb-item active" aria-current="page" th:text="${esNueva ? 'Nueva Propiedad' : 'Editar Propiedad'}">Nueva Propiedad</li>
+          </ol>
+        </nav>
+      </div>
+    </div>
+
+    <!-- Mensajes de error -->
+    <div class="row" th:if="${error != null}">
+      <div class="col-12">
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+          <i class="bi bi-exclamation-triangle-fill me-2"></i> <span th:text="${error}">Error</span>
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+      </div>
+
+      <!-- Botones de acción -->
+      <div class="d-grid gap-2 d-md-flex justify-content-md-end mb-5">
+        <a th:href="@{/propiedades/mis-propiedades}" class="btn btn-secondary">
+          <i class="bi bi-x-circle"></i> Cancelar
+        </a>
+        <button type="submit" class="btn btn-primary">
+          <i class="bi" th:classappend="${esNueva ? 'bi-plus-circle' : 'bi-save'}"></i>
+          <span th:text="${esNueva ? 'Crear propiedad' : 'Guardar cambios'}">Crear propiedad</span>
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Footer -->
+  <footer class="footer mt-5 py-3 bg-light">
+    <div class="container text-center">
+      <span class="text-muted">© 2025 HomeFlex - Todos los derechos reservados</span>
+    </div>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.5/dist/js/bootstrap.bundle.min.js" integrity="sha384-k6d4wzSIapyDyv1kpU366/PK5hCdSbCRGRCMv+eplOQJWyd1fbcAu9OCUj5zNLiq" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  
+  <script>
+    // Inicializar el mapa
+    document.addEventListener('DOMContentLoaded', function() {
+      // Valores iniciales (España como centro por defecto)
+      const defaultLat = 40.416775;
+      const defaultLng = -3.703790;
+      
+      // Obtener valores actuales si existen
+      const latInput = document.getElementById('latitud');
+      const lngInput = document.getElementById('longitud');
+      const lat = latInput.value ? parseFloat(latInput.value) : defaultLat;
+      const lng = lngInput.value ? parseFloat(latInput.value) : defaultLng;
+      
+      // Inicializar mapa
+      const map = L.map('map').setView([lat, lng], 13);
+      
+      // Añadir capa de OpenStreetMap
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+      }).addTo(map);
+      
+      // Marcador
+      let marker;
+      if (latInput.value && lngInput.value) {
+        marker = L.marker([lat, lng]).addTo(map);
+      }
+      
+      // Función para actualizar o crear el marcador
+      function updateMarker(lat, lng) {
+        if (marker) {
+          marker.setLatLng([lat, lng]);
+        } else {
+          marker = L.marker([lat, lng]).addTo(map);
+        }
+        latInput.value = lat;
+        lngInput.value = lng;
+      }
+      
+      // Evento de clic en el mapa
+      map.on('click', function(e) {
+        updateMarker(e.latlng.lat, e.latlng.lng);
+      });
+      
+      // Evento de cambio en los inputs de lat/lng
+      latInput.addEventListener('change', function() {
+        if (latInput.value && lngInput.value) {
+          updateMarker(parseFloat(latInput.value), parseFloat(lngInput.value));
+          map.setView([parseFloat(latInput.value), parseFloat(lngInput.value)], 13);
+        }
+      });
+      
+      lngInput.addEventListener('change', function() {
+        if (latInput.value && lngInput.value) {
+          updateMarker(parseFloat(latInput.value), parseFloat(lngInput.value));
+          map.setView([parseFloat(latInput.value), parseFloat(lngInput.value)], 13);
+        }
+      });
+      
+      // Evento para buscar ubicación a partir de dirección, ciudad y país
+      const direccionInput = document.getElementById('direccion');
+      const ciudadInput = document.getElementById('ciudad');
+      const paisInput = document.getElementById('pais');
+      
+      [direccionInput, ciudadInput, paisInput].forEach(input => {
+        input.addEventListener('blur', function() {
+          if (direccionInput.value && ciudadInput.value && paisInput.value) {
+            const direccionCompleta = `${direccionInput.value}, ${ciudadInput.value}, ${paisInput.value}`;
+            
+            // Llamada a API de geocodificación (ejemplo con Nominatim)
+            fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(direccionCompleta)}`)
+              .then(response => response.json())
+              .then(data => {
+                if (data && data.length > 0) {
+                  const lat = parseFloat(data[0].lat);
+                  const lng = parseFloat(data[0].lon);
+                  updateMarker(lat, lng);
+                  map.setView([lat, lng], 13);
+                }
+              })
+              .catch(error => console.error('Error al geocodificar la dirección:', error));
+          }
+        });
+      });
+      
+      // Manejo de vista previa de imágenes
+      const fotosInput = document.getElementById('fotos');
+      const previewContainer = document.getElementById('previewContainer');
+      const nuevasFotosPreview = document.getElementById('nuevasFotosPreview');
+      const fotoPrincipalSelect = document.getElementById('fotoPrincipal');
+      
+      fotosInput.addEventListener('change', function() {
+        previewContainer.innerHTML = '';
+        fotoPrincipalSelect.innerHTML = '<option value="" selected>Ninguna (mantener la actual)</option>';
+        
+        if (this.files.length > 0) {
+          nuevasFotosPreview.style.display = 'block';
+          
+          Array.from(this.files).forEach((file, index) => {
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+              // Crear vista previa
+              const previewDiv = document.createElement('div');
+              previewDiv.className = 'thumbnail-preview';
+              
+              const img = document.createElement('img');
+              img.src = e.target.result;
+              img.className = 'thumbnail';
+              img.alt = 'Vista previa';
+              
+              previewDiv.appendChild(img);
+              previewContainer.appendChild(previewDiv);
+              
+              // Añadir opción al selector de foto principal
+              const option = document.createElement('option');
+              option.value = index;
+              option.textContent = `Foto ${index + 1}`;
+              fotoPrincipalSelect.appendChild(option);
+            };
+            
+            reader.readAsDataURL(file);
+          });
+        } else {
+          nuevasFotosPreview.style.display = 'none';
+        }
+      });
+      
+      // Validación del formulario
+      (function() {
+        'use strict';
+        const forms = document.querySelectorAll('.needs-validation');
+        
+        Array.from(forms).forEach(form => {
+          form.addEventListener('submit', event => {
+            if (!form.checkValidity()) {
+              event.preventDefault();
+              event.stopPropagation();
+            }
+            
+            form.classList.add('was-validated');
+          }, false);
+        });
+      })();
+    });
+  </script>
+    </div>
+
+    <!-- Formulario de propiedad -->
+    <form th:action="${esNueva ? '/propiedades/nueva' : '/propiedades/editar/' + propiedad.id}" 
+          th:object="${propiedad}" 
+          method="post" 
+          enctype="multipart/form-data"
+          class="needs-validation" 
+          novalidate>
+      
+      <!-- Datos básicos -->
+      <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+          <h5 class="mb-0"><i class="bi bi-house-fill"></i> Información básica</h5>
+        </div>
+        <div class="card-body">
+          <!-- Campo oculto para ID (edición) -->
+          <input type="hidden" th:field="*{id}" />
+
+          <div class="row mb-3">
+            <div class="col-md-6">
+              <label for="titulo" class="form-label">Título <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" id="titulo" th:field="*{titulo}" required
+                     placeholder="Ej: Apartamento acogedor en el centro">
+              <div class="invalid-feedback" th:if="${#fields.hasErrors('titulo')}" th:errors="*{titulo}">
+                Por favor, introduce un título válido.
+              </div>
+            </div>
+            <div class="col-md-6">
+              <label for="activo" class="form-label">Estado</label>
+              <select class="form-select" id="activo" th:field="*{activo}">
+                <option value="true" selected>Publicado (visible)</option>
+                <option value="false">Borrador (no visible)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label for="descripcion" class="form-label">Descripción <span class="text-danger">*</span></label>
+            <textarea class="form-control" id="descripcion" th:field="*{descripcion}" rows="5" required
+                      placeholder="Describe tu propiedad de forma atractiva y detallada..."></textarea>
+            <div class="invalid-feedback" th:if="${#fields.hasErrors('descripcion')}" th:errors="*{descripcion}">
+              Por favor, introduce una descripción válida.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Ubicación -->
+      <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+          <h5 class="mb-0"><i class="bi bi-geo-alt-fill"></i> Ubicación</h5>
+        </div>
+        <div class="card-body">
+          <div class="row mb-3">
+            <div class="col-md-12">
+              <label for="direccion" class="form-label">Dirección <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" id="direccion" th:field="*{direccion}" required
+                     placeholder="Ej: Calle Principal 123, Piso 4">
+              <div class="invalid-feedback" th:if="${#fields.hasErrors('direccion')}" th:errors="*{direccion}">
+                Por favor, introduce una dirección válida.
+              </div>
+            </div>
+          </div>
+
+          <div class="row mb-3">
+            <div class="col-md-6">
+              <label for="ciudad" class="form-label">Ciudad <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" id="ciudad" th:field="*{ciudad}" required
+                     placeholder="Ej: Madrid">
+              <div class="invalid-feedback" th:if="${#fields.hasErrors('ciudad')}" th:errors="*{ciudad}">
+                Por favor, introduce una ciudad válida.
+              </div>
+            </div>
+            <div class="col-md-6">
+              <label for="pais" class="form-label">País <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" id="pais" th:field="*{pais}" required
+                     placeholder="Ej: España">
+              <div class="invalid-feedback" th:if="${#fields.hasErrors('pais')}" th:errors="*{pais}">
+                Por favor, introduce un país válido.
+              </div>
+            </div>
+          </div>
+
+          <div class="row mb-3">
+            <div class="col-md-6">
+              <label for="latitud" class="form-label">Latitud</label>
+              <input type="number" step="0.000001" class="form-control" id="latitud" th:field="*{latitud}" 
+                     placeholder="Ej: 40.416775">
+            </div>
+            <div class="col-md-6">
+              <label for="longitud" class="form-label">Longitud</label>
+              <input type="number" step="0.000001" class="form-control" id="longitud" th:field="*{longitud}" 
+                     placeholder="Ej: -3.703790">
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Ubicación en el mapa</label>
+            <div id="map" class="border"></div>
+            <small class="form-text text-muted">Haz clic en el mapa para establecer la ubicación exacta</small>
+          </div>
+        </div>
+      </div>
+
+      <!-- Detalles -->
+      <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+          <h5 class="mb-0"><i class="bi bi-list-check"></i> Detalles de la propiedad</h5>
+        </div>
+        <div class="card-body">
+          <div class="row mb-3">
+            <div class="col-md-4">
+              <label for="capacidad" class="form-label">Capacidad <span class="text-danger">*</span></label>
+              <div class="input-group">
+                <span class="input-group-text"><i class="bi bi-person-fill"></i></span>
+                <input type="number" min="1" class="form-control" id="capacidad" th:field="*{capacidad}" required
+                       placeholder="Número de huéspedes">
+              </div>
+              <div class="invalid-feedback" th:if="${#fields.hasErrors('capacidad')}" th:errors="*{capacidad}">
+                Por favor, introduce una capacidad válida.
+              </div>
+            </div>
+            <div class="col-md-4">
+              <label for="dormitorios" class="form-label">Dormitorios <span class="text-danger">*</span></label>
+              <div class="input-group">
+                <span class="input-group-text"><i class="bi bi-door-closed-fill"></i></span>
+                <input type="number" min="0" class="form-control" id="dormitorios" th:field="*{dormitorios}" required
+                       placeholder="Número de dormitorios">
+              </div>
+              <div class="invalid-feedback" th:if="${#fields.hasErrors('dormitorios')}" th:errors="*{dormitorios}">
+                Por favor, introduce un número válido.
+              </div>
+            </div>
+            <div class="col-md-4">
+              <label for="banos" class="form-label">Baños <span class="text-danger">*</span></label>
+              <div class="input-group">
+                <span class="input-group-text"><i class="bi bi-droplet-fill"></i></span>
+                <input type="number" min="1" step="0.5" class="form-control" id="banos" th:field="*{banos}" required
+                       placeholder="Número de baños">
+              </div>
+              <div class="invalid-feedback" th:if="${#fields.hasErrors('banos')}" th:errors="*{banos}">
+                Por favor, introduce un número válido.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Precios -->
+      <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+          <h5 class="mb-0"><i class="bi bi-currency-euro"></i> Precios</h5>
+        </div>
+        <div class="card-body">
+          <div class="row mb-3">
+            <div class="col-md-6">
+              <label for="precioDia" class="form-label">Precio por día <span class="text-danger">*</span></label>
+              <div class="input-group">
+                <span class="input-group-text"><i class="bi bi-currency-euro"></i></span>
+                <input type="number" min="0" step="0.01" class="form-control" id="precioDia" th:field="*{precioDia}" required
+                       placeholder="Precio por noche">
+              </div>
+              <div class="invalid-feedback" th:if="${#fields.hasErrors('precioDia')}" th:errors="*{precioDia}">
+                Por favor, introduce un precio válido.
+              </div>
+            </div>
+            <div class="col-md-6">
+              <label for="precioSemana" class="form-label">Precio por semana (opcional)</label>
+              <div class="input-group">
+                <span class="input-group-text"><i class="bi bi-currency-euro"></i></span>
+                <input type="number" min="0" step="0.01" class="form-control" id="precioSemana" th:field="*{precioSemana}"
+                       placeholder="Precio por semana">
+              </div>
+              <div class="invalid-feedback" th:if="${#fields.hasErrors('precioSemana')}" th:errors="*{precioSemana}">
+                Por favor, introduce un precio válido.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Fotos -->
+      <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+          <h5 class="mb-0"><i class="bi bi-images"></i> Fotos</h5>
+        </div>
+        <div class="card-body">
+          <!-- Fotos existentes (solo en edición) -->
+          <div th:if="${!esNueva && propiedad.fotos != null && !propiedad.fotos.isEmpty()}" class="mb-4">
+            <h6>Fotos actuales</h6>
+            <div class="d-flex flex-wrap">
+              <div th:each="foto : ${propiedad.fotos}" class="thumbnail-preview">
+                <img th:src="${foto.url}" alt="Foto de la propiedad" class="thumbnail">
+                <span th:if="${foto.principal}" class="main-photo-badge">Principal</span>
+                <div class="photo-actions">
+                  <div class="btn-group btn-group-sm">
+                    <input type="radio" name="fotoPrincipalExistente" th:value="${foto.id}" 
+                           th:checked="${foto.principal}" class="btn-check" th:id="'foto-principal-' + ${foto.id}">
+                    <label class="btn btn-outline-primary" th:for="'foto-principal-' + ${foto.id}" 
+                           title="Establecer como foto principal">
+                      <i class="bi bi-star-fill"></i>
+                    </label>
+                    
+                    <input type="checkbox" name="fotosEliminar" th:value="${foto.id}" 
+                           class="btn-check" th:id="'foto-eliminar-' + ${foto.id}">
+                    <label class="btn btn-outline-danger" th:for="'foto-eliminar-' + ${foto.id}" 
+                           title="Marcar para eliminar">
+                      <i class="bi bi-trash"></i>
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="form-text text-muted mt-2">Para establecer una foto como principal, selecciona la estrella. Para eliminar, marca la papelera.</div>
+          </div>
+
+          <!-- Subir nuevas fotos -->
+          <div class="mb-3">
+            <label for="fotos" class="form-label">Subir nuevas fotos</label>
+            <input class="form-control" type="file" id="fotos" name="fotos" multiple accept="image/*">
+            <div class="form-text">Puedes seleccionar múltiples archivos. Formatos aceptados: JPG, PNG, WEBP.</div>
+          </div>
+
+          <div class="mb-3" id="nuevasFotosPreview" style="display: none;">
+            <label class="form-label">Vista previa</label>
+            <div class="d-flex flex-wrap" id="previewContainer"></div>
+            <div class="mt-2">
+              <label class="form-label">Selecciona la foto principal entre las nuevas:</label>
+              <select class="form-select" name="fotoPrincipal" id="fotoPrincipal">
+                <option value="" selected>Ninguna (mantener la actual)</option>
+                <!-- Las opciones se generarán dinámicamente mediante JavaScript -->
+              </select>
+            </div>
+          </div>
+        </div>
