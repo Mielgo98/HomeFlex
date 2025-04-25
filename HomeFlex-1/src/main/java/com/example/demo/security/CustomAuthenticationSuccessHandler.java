@@ -30,7 +30,7 @@ public class CustomAuthenticationSuccessHandler extends SimpleUrlAuthenticationS
         // Guardar el token en una cookie
         Cookie jwtCookie = new Cookie("jwt_token", jwtToken);
         jwtCookie.setPath("/");
-        jwtCookie.setHttpOnly(true); // Por seguridad, para que no sea accesible desde JavaScript
+        jwtCookie.setHttpOnly(true); //No accesible desde js
         jwtCookie.setMaxAge(60 * 60 * 24); // 24 horas en segundos
         
         // Tu configuración indica que quieres cookies seguras

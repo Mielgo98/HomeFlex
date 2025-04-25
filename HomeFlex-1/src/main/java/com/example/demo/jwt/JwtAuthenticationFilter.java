@@ -41,7 +41,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         // 1. Primero intenta obtener el token del encabezado Authorization
         final String header = request.getHeader(tokenHeader);
         if (header != null && header.startsWith(tokenPrefix)) {
-            token = header.substring(tokenPrefix.length());
+            token = header.substring(tokenPrefix.length()).trim();
         }
         
         // 2. Si no hay token en el encabezado, intenta obtenerlo de las cookies

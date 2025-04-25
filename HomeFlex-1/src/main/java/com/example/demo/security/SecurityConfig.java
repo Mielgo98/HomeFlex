@@ -69,7 +69,7 @@ public class SecurityConfig {
      * Configuración para la interfaz web (basada en formularios y sesiones)
      */
     @Configuration
-    @Order(1) // Primera cadena de filtros a evaluar
+    @Order(2) // Primera cadena de filtros a evaluar
     public static class WebSecurityConfig {
         
         @Autowired
@@ -116,7 +116,7 @@ public class SecurityConfig {
      * Configuración para la API REST (basada en JWT)
      */
     @Configuration
-    @Order(2) // Segunda cadena de filtros a evaluar
+    @Order(1) // Segunda cadena de filtros a evaluar
     public static class ApiSecurityConfig {
         
         @Autowired
