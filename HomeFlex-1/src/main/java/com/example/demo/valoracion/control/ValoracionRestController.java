@@ -25,8 +25,7 @@ import com.example.demo.valoracion.model.NuevaValoracionDTO;
 import com.example.demo.valoracion.model.RespuestaValoracionDTO;
 import com.example.demo.valoracion.model.ValoracionDTO;
 import com.example.demo.valoracion.service.ValoracionService;
-import com.example.demo.valoracion.service.ValoracionService.ValoracionesEstadisticasDTO;
-
+import com.example.demo.valoracion.model.ValoracionesEstadisticasDTO;
 import jakarta.validation.Valid;
 
 @RestController

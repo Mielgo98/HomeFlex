@@ -1,6 +1,7 @@
 package com.example.demo.usuario.service;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,12 +12,20 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.example.demo.email.service.EmailService;
+import com.example.demo.foto.model.FotoVO;
+import com.example.demo.foto.repository.FotoRepository;
+import com.example.demo.propiedad.model.PropiedadVO;
+import com.example.demo.propiedad.repository.PropiedadRepository;
+import com.example.demo.reserva.model.ReservaVO;
+import com.example.demo.reserva.repository.ReservaRepository;
 import com.example.demo.rol.model.RolVO;
 import com.example.demo.rol.repository.RolRepository;
 import com.example.demo.usuario.model.PerfilDTO;
 import com.example.demo.usuario.model.RegistroDTO;
 import com.example.demo.usuario.model.UsuarioVO;
 import com.example.demo.usuario.repository.UsuarioRepository;
+import com.example.demo.valoracion.model.ValoracionVO;
+import com.example.demo.valoracion.repository.ValoracionRepository;
 
 import jakarta.mail.MessagingException;
 
@@ -34,7 +43,19 @@ public class UsuarioService {
     
     @Autowired
     private EmailService emailService;
+    
+    @Autowired
+    private ValoracionRepository valoracionRepository;
 
+    @Autowired
+    private PropiedadRepository propiedadRepository;
+    
+    @Autowired
+    private FotoRepository fotoRepository;
+    
+    @Autowired
+    private ReservaRepository reservaRepository;
+    
     /**
      * Convierte el DTO de registro a un objeto UsuarioVO, asignándole los valores
      * iniciales y, por defecto, el rol "INQUILINO".
@@ -270,7 +291,53 @@ public class UsuarioService {
                 throw new RuntimeException("La contraseña proporcionada no es correcta");
             }
             
-            // Eliminar el usuario
+//            Long userId = usuario.getId();
+            
+            // 1. Eliminar o actualizar propiedades (opción 1: eliminar, opción 2: transferir a un usuario administrador)
+            // Opción 1: Eliminar propiedades
+            List<PropiedadVO> propiedades = propiedadRepository.findByPropietario(usuario);
+            for (PropiedadVO propiedad : propiedades) {
+                // Primero eliminar las fotos asociadas a la propiedad
+                List<FotoVO> fotos = fotoRepository.findByPropiedad(propiedad);
+                fotoRepository.deleteAll(fotos);
+                
+                // Eliminar valoraciones de la propiedad
+                List<ValoracionVO> valoracionesPropiedad = valoracionRepository.findByPropiedad(propiedad);
+                valoracionRepository.deleteAll(valoracionesPropiedad);
+                
+                // Eliminar reservas de la propiedad
+                List<ReservaVO> reservasPropiedad = reservaRepository.findByPropiedad(propiedad);
+                reservaRepository.deleteAll(reservasPropiedad);
+                
+                // Finalmente eliminar la propiedad
+                propiedadRepository.delete(propiedad);
+            }
+            
+            // 2. Eliminar todas las reservas hechas por el usuario como inquilino
+            List<ReservaVO> reservasUsuario = reservaRepository.findByUsuario(usuario);
+            reservaRepository.deleteAll(reservasUsuario);
+            
+            // 3. Eliminar todas las valoraciones hechas por el usuario
+            List<ValoracionVO> valoracionesUsuario = valoracionRepository.findByUsuario(usuario);
+            valoracionRepository.deleteAll(valoracionesUsuario);
+            
+            // 4. Eliminar mensajes (asumiendo que tienes un repositorio para mensajes)
+            // mensajeRepository.deleteByEmisorOrReceptor(usuario, usuario);
+            
+            // 5. Eliminar notificaciones (asumiendo que tienes un repositorio para notificaciones)
+            // notificacionRepository.deleteByUsuario(usuario);
+            
+            // 6. Eliminar conversaciones de chatbot (asumiendo que tienes un repositorio para conversaciones)
+            // chatbotConversacionRepository.deleteByUsuario(usuario);
+            
+            // 7. Eliminar estadísticas (asumiendo que tienes un repositorio para estadísticas)
+            // estadisticaRepository.deleteByUsuario(usuario);
+            
+            // 8. Limpiar roles (no es necesario eliminar, se hará en cascada con el usuario)
+            usuario.getRoles().clear();
+            usuarioRepository.save(usuario);
+            
+            // 9. Finalmente, eliminar el usuario
             usuarioRepository.delete(usuario);
             
             // Cerrar la sesión del usuario

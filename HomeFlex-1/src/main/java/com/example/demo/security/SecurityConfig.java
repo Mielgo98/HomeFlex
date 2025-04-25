@@ -14,7 +14,6 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.argon2.Argon2PasswordEncoder;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
@@ -37,11 +36,15 @@ public class SecurityConfig {
     private CustomAuthenticationFailureHandler authenticationFailureHandler;
     
     @Autowired
+    private CustomAuthenticationSuccessHandler authenticationSuccessHandler;
+    
+    @Autowired
     private UserDetailsService userDetailsService;
     
     @Bean
     public PasswordEncoder passwordEncoder() {
-    	return new Argon2PasswordEncoder(16, 32, 1, 65536, 3);    }
+        return new Argon2PasswordEncoder(16, 32, 1, 65536, 3);
+    }
     
     /**
      * Configura el proveedor de autenticación común
@@ -73,6 +76,9 @@ public class SecurityConfig {
         private CustomAuthenticationFailureHandler authenticationFailureHandler;
         
         @Autowired
+        private CustomAuthenticationSuccessHandler authenticationSuccessHandler;
+        
+        @Autowired
         private DaoAuthenticationProvider authenticationProvider;
         
         @Bean
@@ -80,15 +86,16 @@ public class SecurityConfig {
             http
                 .securityMatcher("/**") // Aplicar a todas las rutas excepto /api/**
                 .authorizeHttpRequests(authorize -> authorize
-                	    // Rutas públicas
-                	    .requestMatchers("/", "/login", "/registro", "/activar", "/cuenta-eliminada", "/css/**", "/js/**", "/images/**").permitAll()
-                	    // Rutas protegidas
-                	    .requestMatchers("/dashboard/**", "/perfil/**").authenticated()
-                	    .anyRequest().authenticated()
-                	)
+                    // Rutas públicas
+                    .requestMatchers("/", "/login", "/registro", "/activar", "/cuenta-eliminada", "/css/**", "/js/**", "/images/**").permitAll()
+                    // Rutas protegidas
+                    .requestMatchers("/dashboard/**", "/perfil/**").authenticated()
+                    .anyRequest().authenticated()
+                )
                 .formLogin(form -> form
                     .loginPage("/login")
                     .failureHandler(authenticationFailureHandler)
+                    .successHandler(authenticationSuccessHandler) // Aquí agregamos nuestro success handler
                     .defaultSuccessUrl("/dashboard")
                     .permitAll()
                 )
@@ -96,7 +103,7 @@ public class SecurityConfig {
                     .logoutUrl("/logout")
                     .logoutSuccessUrl("/login?logout")
                     .invalidateHttpSession(true)
-                    .deleteCookies("JSESSIONID")
+                    .deleteCookies("JSESSIONID", "jwt_token") // Agregar jwt_token a las cookies eliminadas durante logout
                     .permitAll()
                 )
                 .authenticationProvider(authenticationProvider);

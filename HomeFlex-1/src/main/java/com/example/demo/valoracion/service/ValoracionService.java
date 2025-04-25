@@ -24,7 +24,7 @@ import com.example.demo.valoracion.model.RespuestaValoracionDTO;
 import com.example.demo.valoracion.model.ValoracionDTO;
 import com.example.demo.valoracion.model.ValoracionVO;
 import com.example.demo.valoracion.repository.ValoracionRepository;
-
+import com.example.demo.valoracion.model.ValoracionesEstadisticasDTO;
 import jakarta.mail.MessagingException;
 
 @Service

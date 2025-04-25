@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Respuesta a tu Valoración - HomeFlex</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            background-color: #28a745;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            border-radius: 5px 5px 0 0;
+        }
+        .content {
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-top: none;
+            border-radius: 0 0 5px 5px;
+        }
+        .quote {
+            background-color: #f5f5f5;
+            padding: 15px;
+            border-left: 4px solid #28a745;
+            margin: 15px 0;
+        }
+        .button {
+            display: inline-block;
+            background-color: #28a745;
+            color: white;
+            text-decoration: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .footer {
+            margin-top: 20px;
+            text-align: center;
+            font-size: 12px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>HomeFlex</h1>
+    </div>
+    <div class="content">
+        <h2>¡Hola <span th:text="${nombreUsuario}">Usuario</span>!</h2>
+        
+        <p><strong th:text="${nombrePropietario}">Propietario</strong> ha respondido a tu valoración sobre la propiedad "<strong th:text="${tituloPropiedad}">Título de la propiedad</strong>".</p>
+        
+        <div class="quote">
+            <p th:text="${respuesta}">Respuesta del propietario</p>
+        </div>
+        
+        <p>Puedes ver esta respuesta y tus otras valoraciones accediendo a tu perfil en HomeFlex:</p>
+        
+        <div style="text-align: center;">
+            <a class="button" th:href="${appUrl + '/mis-valoraciones'}">Ver mis valoraciones</a>
+        </div>
+        
+        <p>¡Gracias por compartir tus experiencias con la comunidad de HomeFlex!</p>
+        
+        <p>Saludos,<br>El equipo de HomeFlex</p>
+    </div>
+    <div class="footer">
+        <p>Este es un correo automático, por favor no respondas a este mensaje.</p>
+        <p>&copy; 2025 HomeFlex. Todos los derechos reservados.</p>
+    </div>
+</body>
+</html>

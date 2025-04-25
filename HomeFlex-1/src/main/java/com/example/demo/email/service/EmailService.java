@@ -191,4 +191,78 @@ public void enviarEmailCuentaEliminada(String destinatario, String nombre) throw
 		            }
 		        });
 		    }
+		   
+		   /**
+		    * Envía una notificación al propietario cuando un usuario ha valorado su propiedad
+		    */
+		   public void enviarNotificacionNuevaValoracion(
+		           String emailPropietario, 
+		           String nombrePropietario, 
+		           String nombreValorador, 
+		           String tituloPropiedad, 
+		           Integer puntuacion, 
+		           String comentario) throws MessagingException {
+		       
+		       // Preparar el contexto para la plantilla
+		       Context context = new Context();
+		       context.setVariable("nombrePropietario", nombrePropietario);
+		       context.setVariable("nombreValorador", nombreValorador);
+		       context.setVariable("tituloPropiedad", tituloPropiedad);
+		       context.setVariable("puntuacion", puntuacion);
+		       context.setVariable("comentario", comentario);
+		       context.setVariable("appUrl", appUrl);
+		       
+		       // Procesar la plantilla
+		       String contenido = templateEngine.process("emails/nueva-valoracion", context);
+		       
+		       // Crear el mensaje
+		       MimeMessage message = mailSender.createMimeMessage();
+		       MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+		       
+		       helper.setFrom(emailFrom);
+		       helper.setTo(emailPropietario);
+		       helper.setSubject("Nueva valoración para tu propiedad en HomeFlex");
+		       helper.setText(contenido, true); // true = es HTML
+		       
+		       // Enviar el email
+		       mailSender.send(message);
+		       
+		       System.out.println("Email de notificación de nueva valoración enviado a: " + emailPropietario);
+		   }
+
+		   /**
+		    * Envía una notificación al usuario cuando el propietario ha respondido a su valoración
+		    */
+		   public void enviarNotificacionRespuestaValoracion(
+		           String emailUsuario,
+		           String nombreUsuario,
+		           String nombrePropietario,
+		           String tituloPropiedad,
+		           String respuesta) throws MessagingException {
+		       
+		       // Preparar el contexto para la plantilla
+		       Context context = new Context();
+		       context.setVariable("nombreUsuario", nombreUsuario);
+		       context.setVariable("nombrePropietario", nombrePropietario);
+		       context.setVariable("tituloPropiedad", tituloPropiedad);
+		       context.setVariable("respuesta", respuesta);
+		       context.setVariable("appUrl", appUrl);
+		       
+		       // Procesar la plantilla
+		       String contenido = templateEngine.process("emails/respuesta-valoracion", context);
+		       
+		       // Crear el mensaje
+		       MimeMessage message = mailSender.createMimeMessage();
+		       MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+		       
+		       helper.setFrom(emailFrom);
+		       helper.setTo(emailUsuario);
+		       helper.setSubject("Han respondido a tu valoración en HomeFlex");
+		       helper.setText(contenido, true); // true = es HTML
+		       
+		       // Enviar el email
+		       mailSender.send(message);
+		       
+		       System.out.println("Email de notificación de respuesta a valoración enviado a: " + emailUsuario);
+		   }
 }
