@@ -13,6 +13,7 @@ import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -28,11 +29,15 @@ import com.example.demo.propiedad.model.PropiedadDTO;
 import com.example.demo.propiedad.model.PropiedadEstadisticasDTO;
 import com.example.demo.propiedad.model.PropiedadVO;
 import com.example.demo.propiedad.repository.PropiedadRepository;
+import com.example.demo.propiedad.event.*;
 import com.example.demo.usuario.model.UsuarioVO;
 
 @Service
 public class PropiedadService {
 
+	@Autowired
+	private ApplicationEventPublisher applicationEventPublisher;
+	
     @Autowired
     private PropiedadRepository propiedadRepository;
     
@@ -152,7 +157,7 @@ public class PropiedadService {
         
         // Guardar la propiedad
         PropiedadVO propiedadGuardada = propiedadRepository.save(propiedad);
-        
+        applicationEventPublisher.publishEvent(new PropiedadCreatedEvent(propiedadGuardada.getId()));
         return new PropiedadDTO(propiedadGuardada);
     }
     
@@ -166,7 +171,7 @@ public class PropiedadService {
         propiedad.setActivo(true);
         
         PropiedadVO propiedadGuardada = propiedadRepository.save(propiedad);
-        
+        applicationEventPublisher.publishEvent(new PropiedadCreatedEvent(propiedadGuardada.getId()));
         return new PropiedadDTO(propiedadGuardada);
     }
     
@@ -194,7 +199,7 @@ public class PropiedadService {
         propiedadExistente.setActivo(propiedadActualizada.getActivo());
         
         PropiedadVO propiedadGuardada = propiedadRepository.save(propiedadExistente);
-        
+        applicationEventPublisher.publishEvent(new PropiedadUpdatedEvent(propiedadGuardada.getId()));
         return new PropiedadDTO(propiedadGuardada);
     }
     
@@ -226,7 +231,7 @@ public class PropiedadService {
         propiedadExistente.setBanos(propiedadActualizada.getBanos());
         
         PropiedadVO propiedadGuardada = propiedadRepository.save(propiedadExistente);
-        
+        applicationEventPublisher.publishEvent(new PropiedadUpdatedEvent(propiedadGuardada.getId()));
         return new PropiedadDTO(propiedadGuardada);
     }
     
@@ -241,6 +246,8 @@ public class PropiedadService {
         // Eliminar lógicamente
         propiedad.setActivo(false);
         propiedadRepository.save(propiedad);
+        applicationEventPublisher.publishEvent(new PropiedadDeletedEvent(id));
+
     }
     
     /**
@@ -259,6 +266,8 @@ public class PropiedadService {
         // Eliminar lógicamente
         propiedad.setActivo(false);
         propiedadRepository.save(propiedad);
+        applicationEventPublisher.publishEvent(new PropiedadDeletedEvent(id));
+
     }
     
     /**
