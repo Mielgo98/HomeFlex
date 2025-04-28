@@ -15,19 +15,49 @@ import com.example.demo.chatbot.model.EntityType;
 @Repository
 public interface DocumentEmbeddingRepository extends JpaRepository<DocumentEmbedding, Long> {
 
-    List<DocumentEmbedding> findByEntityTypeAndEntityId(EntityType entityType, Long entityId);
-    
-    @Query(value = "SELECT * FROM document_embeddings WHERE entity_type = :entityType", nativeQuery = true)
-    List<DocumentEmbedding> findByEntityType(@Param("entityType") String entityType);
-    
+	  // Borra embeddings de una entidad
     @Modifying
     @Transactional
-    @Query(value = "DELETE FROM document_embeddings WHERE entity_type = :entityType AND entity_id = :entityId", nativeQuery = true)
-    void deleteByEntityTypeAndEntityId(@Param("entityType") String entityType, @Param("entityId") Long entityId);
-    
-    @Query(value = "SELECT * FROM document_embeddings ORDER BY embedding <-> :embedding LIMIT :limit", nativeQuery = true)
-    List<DocumentEmbedding> findNearest(@Param("embedding") float[] embedding, @Param("limit") int limit);
-    
-    @Query(value = "SELECT * FROM document_embeddings WHERE entity_type = :entityType ORDER BY embedding <-> :embedding LIMIT :limit", nativeQuery = true)
-    List<DocumentEmbedding> findNearestByEntityType(@Param("embedding") float[] embedding, @Param("entityType") String entityType, @Param("limit") int limit);
+    @Query("""
+        DELETE FROM DocumentEmbedding d
+         WHERE d.entityType = :entityType
+           AND d.entityId   = :entityId
+        """)
+    void deleteByEntityTypeAndEntityId(
+        @Param("entityType") EntityType entityType,
+        @Param("entityId")   Long       entityId
+    );
+	
+    /**
+     * Vecinos más cercanos dentro de un tipo (consulta nativa).
+     * @param entityType     el nombre del enum (p.ej. "PROPERTY")
+     * @param vectorLiteral  el literal "[v1,v2,…]" casteado luego a vector
+     * @param limit          cuántos vecinos devolver
+     */
+    @Query(value = """
+        SELECT *
+          FROM document_embeddings
+         WHERE entity_type = :entityType
+         ORDER BY embedding <-> CAST(:vectorLiteral AS vector)
+         LIMIT :limit
+        """, nativeQuery = true)
+    List<DocumentEmbedding> findNearestByEntityTypeNative(
+        @Param("entityType")    String entityType,
+        @Param("vectorLiteral") String vectorLiteral,
+        @Param("limit")         int    limit
+    );
+
+    /**
+     * Vecinos más cercanos en toda la tabla (consulta nativa).
+     */
+    @Query(value = """
+        SELECT *
+          FROM document_embeddings
+         ORDER BY embedding <-> CAST(:vectorLiteral AS vector)
+         LIMIT :limit
+        """, nativeQuery = true)
+    List<DocumentEmbedding> findNearestNative(
+        @Param("vectorLiteral") String vectorLiteral,
+        @Param("limit")         int    limit
+    );
 }

@@ -1,39 +1,54 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+                             https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
+
+    <!-- Parent Spring Boot -->
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
         <version>3.4.4</version>
-        <relativePath/> <!-- lookup parent from repository -->
+        <relativePath/>
     </parent>
 
     <groupId>com.example</groupId>
     <artifactId>HomeFlex-1</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>HomeFlex-1</name>
-    <description>Demo project for Spring Boot</description>
-    <url/>
-    <licenses>
-        <license/>
-    </licenses>
-    <developers>
-        <developer/>
-    </developers>
-    <scm>
-        <connection/>
-        <developerConnection/>
-        <tag/>
-        <url/>
-    </scm>
+    <description>HomeFlex application</description>
+
+    <!-- Repositorio de milestones para Spring AI 1.0.0-M7 -->
+    <repositories>
+        <repository>
+            <id>spring-milestones</id>
+            <name>Spring Milestones</name>
+            <url>https://repo.spring.io/milestone</url>
+        </repository>
+    </repositories>
+
     <properties>
         <java.version>17</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+        <spring-ai.version>1.0.0-M7</spring-ai.version>
     </properties>
-  <dependencies>
-        <!-- Spring Boot starters -->
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.springframework.ai</groupId>
+                <artifactId>spring-ai-bom</artifactId>
+                <version>${spring-ai.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <dependencies>
+        <!-- Spring Boot Starters -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
@@ -66,7 +81,7 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/x
             <optional>true</optional>
         </dependency>
 
-        <!-- JWT 0.12.6 -->
+        <!-- JWT (jjwt 0.12.6) -->
         <dependency>
             <groupId>io.jsonwebtoken</groupId>
             <artifactId>jjwt-api</artifactId>
@@ -85,27 +100,57 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/x
             <scope>runtime</scope>
         </dependency>
 
-        <!-- MySQL -->
+        <!-- PostgreSQL driver -->
         <dependency>
-            <groupId>com.mysql</groupId>
-            <artifactId>mysql-connector-j</artifactId>
-            <scope>runtime</scope>
-        </dependency>
-        
-        <dependency>
-    		<groupId>org.postgresql</groupId>
-    		<artifactId>postgresql</artifactId>
-    		<version>42.7.3</version>
-		</dependency>
-
-        <!-- Seguridad extra (si usas cifrado fuerte) -->
-        <dependency>
-            <groupId>org.bouncycastle</groupId>
-            <artifactId>bcprov-jdk18on</artifactId>
-            <version>1.76</version>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <version>42.7.3</version>
         </dependency>
 
-        <!-- Devtools para hot reload -->
+        <!-- Hypersistence Utils for array support -->
+        <dependency>
+            <groupId>io.hypersistence</groupId>
+            <artifactId>hypersistence-utils-hibernate-62</artifactId>
+            <version>3.7.3</version>
+        </dependency>
+
+        <!-- Hibernate Vector (native VECTOR type support) -->
+        <dependency>
+            <groupId>org.hibernate.orm</groupId>
+            <artifactId>hibernate-vector</artifactId>
+            <version>6.4.0.Final</version>
+        </dependency>
+
+        <!-- Spring AI (chat + embeddings) -->
+        <dependency>
+            <groupId>org.springframework.ai</groupId>
+            <artifactId>spring-ai-starter-model-openai</artifactId>
+        </dependency>
+
+        <!-- Apache Tika (if document parsing is needed) -->
+        <dependency>
+            <groupId>org.apache.tika</groupId>
+            <artifactId>tika-core</artifactId>
+            <version>2.9.1</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.tika</groupId>
+            <artifactId>tika-parsers-standard-package</artifactId>
+            <version>2.9.1</version>
+        </dependency>
+
+        <!-- OpenAPI / Swagger UI -->
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+            <version>2.4.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.thymeleaf.extras</groupId>
+            <artifactId>thymeleaf-extras-springsecurity6</artifactId>
+        </dependency>
+
+        <!-- Devtools -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-devtools</artifactId>
@@ -123,48 +168,16 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/x
             <artifactId>spring-security-test</artifactId>
             <scope>test</scope>
         </dependency>
-        
-        <!-- Spring AI -->
-        <dependency>
-            <groupId>org.springframework.ai</groupId>
-            <artifactId>spring-ai-openai-spring-boot-starter</artifactId>
-            <version>0.8.1</version>
-        </dependency>
-        
-        <!-- Hypersistence utils para pgvector -->
-        <dependency>
-            <groupId>io.hypersistence</groupId>
-            <artifactId>hypersistence-utils-hibernate-62</artifactId>
-            <version>3.7.3</version>
-        </dependency>
-        
-        <!-- OpenAPI/Swagger -->
-        <dependency>
-            <groupId>org.springdoc</groupId>
-            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
-            <version>2.4.0</version>
-        </dependency>
-        
-        <!-- Thymeleaf extras para Spring Security 6 -->
-        <dependency>
-            <groupId>org.thymeleaf.extras</groupId>
-            <artifactId>thymeleaf-extras-springsecurity6</artifactId>
-        </dependency>
     </dependencies>
+
     <build>
         <plugins>
+            <!-- Spring Boot Maven Plugin -->
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
-                <configuration>
-                    <excludes>
-                        <exclude>
-                            <groupId>org.projectlombok</groupId>
-                            <artifactId>lombok</artifactId>
-                        </exclude>
-                    </excludes>
-                </configuration>
             </plugin>
+            <!-- Ensure UTF-8 for resources -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-resources-plugin</artifactId>
@@ -177,5 +190,4 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/x
             </plugin>
         </plugins>
     </build>
-
 </project>

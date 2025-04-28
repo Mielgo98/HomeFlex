@@ -23,10 +23,6 @@ import com.example.demo.jwt.JwtAuthenticationFilter;
 
 import java.util.Collections;
 
-/**
- * Configuración de seguridad para la aplicación
- * Separamos la configuración para la interfaz web y la API REST
- */
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
@@ -46,9 +42,6 @@ public class SecurityConfig {
         return new Argon2PasswordEncoder(16, 32, 1, 65536, 3);
     }
     
-    /**
-     * Configura el proveedor de autenticación común
-     */
     @Bean
     public DaoAuthenticationProvider authenticationProvider() {
         DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
@@ -57,19 +50,13 @@ public class SecurityConfig {
         return authProvider;
     }
     
-    /**
-     * Configura el gestor de autenticación común
-     */
     @Bean
     public AuthenticationManager authenticationManager() {
         return new ProviderManager(Collections.singletonList(authenticationProvider()));
     }
     
-    /**
-     * Configuración para la interfaz web (basada en formularios y sesiones)
-     */
     @Configuration
-    @Order(2) // Primera cadena de filtros a evaluar
+    @Order(2)
     public static class WebSecurityConfig {
         
         @Autowired
@@ -84,18 +71,16 @@ public class SecurityConfig {
         @Bean
         public SecurityFilterChain webSecurityFilterChain(HttpSecurity http) throws Exception {
             http
-                .securityMatcher("/**") // Aplicar a todas las rutas excepto /api/**
+                .securityMatcher("/**")
                 .authorizeHttpRequests(authorize -> authorize
-                    // Rutas públicas
                     .requestMatchers("/", "/login", "/registro", "/activar", "/cuenta-eliminada", "/css/**", "/js/**", "/images/**").permitAll()
-                    // Rutas protegidas
                     .requestMatchers("/dashboard/**", "/perfil/**").authenticated()
                     .anyRequest().authenticated()
                 )
                 .formLogin(form -> form
                     .loginPage("/login")
                     .failureHandler(authenticationFailureHandler)
-                    .successHandler(authenticationSuccessHandler) // Aquí agregamos nuestro success handler
+                    .successHandler(authenticationSuccessHandler)
                     .defaultSuccessUrl("/dashboard")
                     .permitAll()
                 )
@@ -103,7 +88,7 @@ public class SecurityConfig {
                     .logoutUrl("/logout")
                     .logoutSuccessUrl("/login?logout")
                     .invalidateHttpSession(true)
-                    .deleteCookies("JSESSIONID", "jwt_token") // Agregar jwt_token a las cookies eliminadas durante logout
+                    .deleteCookies("JSESSIONID", "jwt_token")
                     .permitAll()
                 )
                 .authenticationProvider(authenticationProvider);
@@ -112,11 +97,8 @@ public class SecurityConfig {
         }
     }
     
-    /**
-     * Configuración para la API REST (basada en JWT)
-     */
     @Configuration
-    @Order(1) // Segunda cadena de filtros a evaluar
+    @Order(1)
     public static class ApiSecurityConfig {
         
         @Autowired
@@ -131,12 +113,12 @@ public class SecurityConfig {
         @Bean
         public SecurityFilterChain apiSecurityFilterChain(HttpSecurity http) throws Exception {
             http
-                .securityMatcher("/api/**") // Aplicar solo a /api/**
+                .securityMatcher("/api/**")
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(authorize -> authorize
-                    // Rutas públicas de la API
-                    .requestMatchers("/api/auth/**").permitAll()
-                    // Cualquier otra ruta de la API requiere autenticación
+                    // Hacemos público el endpoint del chatbot
+                    .requestMatchers("/api/auth/**", "/api/chatbot/ask").permitAll()
+                    // el resto de la API sigue requiriendo JWT
                     .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session

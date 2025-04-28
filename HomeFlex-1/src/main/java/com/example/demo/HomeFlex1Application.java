@@ -2,9 +2,10 @@ package com.example.demo;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.autoconfigure.admin.SpringApplicationAdminJmxAutoConfiguration;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
-@SpringBootApplication
+@SpringBootApplication(exclude = SpringApplicationAdminJmxAutoConfiguration.class)
 @EnableScheduling
 public class HomeFlex1Application {
 

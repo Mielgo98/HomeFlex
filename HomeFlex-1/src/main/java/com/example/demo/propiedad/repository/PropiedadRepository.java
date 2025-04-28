@@ -110,4 +110,6 @@ public interface PropiedadRepository extends JpaRepository<PropiedadVO, Long> {
     // Estadísticas: agrupar propiedades por ciudad para un propietario
     @Query("SELECT p.ciudad, COUNT(p) FROM PropiedadVO p WHERE p.propietario.id = :propietarioId GROUP BY p.ciudad")
     List<Object[]> agruparPropiedadesPorCiudad(@Param("propietarioId") Long propietarioId);
+    
+    long countByActivoTrue();
 }

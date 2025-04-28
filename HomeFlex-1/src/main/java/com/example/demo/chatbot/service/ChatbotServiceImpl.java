@@ -1,9 +1,12 @@
+// src/main/java/com/example/demo/chatbot/service/ChatbotServiceImpl.java
 package com.example.demo.chatbot.service;
 
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-
+import com.example.demo.chatbot.model.Answer;
+import com.example.demo.chatbot.model.DocumentEmbedding;
+import com.example.demo.chatbot.model.EntityType;
+import com.example.demo.chatbot.model.ResponseType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.prompt.Prompt;
@@ -13,82 +16,83 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 
-import com.example.demo.chatbot.model.Answer;
-import com.example.demo.chatbot.model.DocumentEmbedding;
-import com.example.demo.chatbot.model.EntityType;
-import com.example.demo.chatbot.model.ResponseType;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 public class ChatbotServiceImpl implements IChatbotService {
 
+    private static final Logger logger = LoggerFactory.getLogger(ChatbotServiceImpl.class);
+
     private final ChatModel chatModel;
-    
+
     @Autowired
     private EmbeddingService embeddingService;
-    
+
     @Value("classpath:/templates/chatbot/propertyPrompt.st")
     private Resource propertyPromptTemplate;
-    
+
     @Value("classpath:/templates/chatbot/generalPrompt.st")
     private Resource generalPromptTemplate;
-    
+
     public ChatbotServiceImpl(ChatModel chatModel) {
         this.chatModel = chatModel;
     }
 
     @Override
     public Answer getAnswer(String question, EntityType entityType) {
+        logger.info("→ Procesando pregunta [{}] para entidad [{}]", question, entityType);
         try {
-            // Buscar documentos similares usando embeddings
             List<DocumentEmbedding> similarDocs = embeddingService.similaritySearch(question, entityType, 5);
-            
-            // Si no encontramos documentos relevantes
+            logger.debug("  • Documentos similares encontrados: {}", similarDocs.size());
+
             if (similarDocs.isEmpty()) {
+                logger.warn("  • No se encontraron documentos relevantes para la consulta");
                 return new Answer("Lo siento, no tengo información sobre esa consulta.", ResponseType.NO_INFORMATION);
             }
-            
-            // Convertir documentos a texto
+
             List<String> contentList = similarDocs.stream()
                     .map(DocumentEmbedding::getContent)
                     .collect(Collectors.toList());
-            
-            // Seleccionar la plantilla apropiada según el tipo de entidad
-            Resource templateResource = (entityType == EntityType.PROPERTY) 
-                                        ? propertyPromptTemplate 
-                                        : generalPromptTemplate;
-            
-            PromptTemplate pt = new PromptTemplate(templateResource);
+            logger.debug("  • Contenido de documentos: {}", contentList);
+
+            Resource template = (entityType == EntityType.PROPERTY)
+                    ? propertyPromptTemplate
+                    : generalPromptTemplate;
+
+            PromptTemplate pt = new PromptTemplate(template);
             Prompt prompt = pt.create(Map.of(
-                "input", question, 
-                "documents", String.join("\n", contentList)
+                    "input", question,
+                    "documents", String.join("\n", contentList)
             ));
-            
+
             ChatResponse response = chatModel.call(prompt);
             String responseText = response.getResult().getOutput().getText();
-            
-            // Determinar el tipo de respuesta basado en el contenido
+            logger.info("← Texto de respuesta: {}", responseText);
+
             ResponseType responseType = determineResponseType(responseText);
-            
+            logger.debug("  • Tipo de respuesta: {}", responseType);
+
             return new Answer(responseText, responseType);
         } catch (Exception e) {
-            return new Answer("Lo siento, ocurrió un error al procesar tu consulta: " + e.getMessage(), 
-                             ResponseType.ERROR);
+            logger.error("⚠️ Error al procesar la pregunta", e);
+            return new Answer("Lo siento, ocurrió un error al procesar tu consulta: " + e.getMessage(),
+                              ResponseType.ERROR);
         }
     }
 
     private ResponseType determineResponseType(String response) {
-        String lowerResponse = response.toLowerCase();
-        
-        if (lowerResponse.contains("no tengo información") || 
-            lowerResponse.contains("no dispongo de datos") ||
-            lowerResponse.contains("no puedo encontrar")) {
+        String lower = response.toLowerCase();
+        if (lower.contains("no tengo información") ||
+            lower.contains("no dispongo de datos") ||
+            lower.contains("no puedo encontrar")) {
             return ResponseType.NO_INFORMATION;
-        } else if (lowerResponse.contains("podrías especificar") ||
-                   lowerResponse.contains("necesito más detalles") ||
-                   lowerResponse.contains("puedes aclarar")) {
+        } else if (lower.contains("podrías especificar") ||
+                   lower.contains("necesito más detalles") ||
+                   lower.contains("puedes aclarar")) {
             return ResponseType.CLARIFICATION;
         }
-        
         return ResponseType.SUCCESS;
     }
 

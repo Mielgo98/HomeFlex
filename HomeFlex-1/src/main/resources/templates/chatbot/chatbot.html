@@ -93,18 +93,17 @@
                 if (message === '') return;
                 
                 // Obtener el tipo de entidad seleccionado
-                let entityType = "property"; // Por defecto
+                let entityType = "property";
                 entityTypeInputs.forEach(input => {
                     if (input.checked) {
                         entityType = input.value;
                     }
                 });
                 
-                // Añadir mensaje del usuario al chat
                 appendUserMessage(message);
                 userInput.value = '';
                 
-                // Añadir indicador de "escribiendo..."
+                // Indicador de escritura
                 const typingIndicator = document.createElement('div');
                 typingIndicator.className = 'bot-message';
                 typingIndicator.id = 'typing-indicator';
@@ -112,42 +111,47 @@
                 chatContainer.appendChild(typingIndicator);
                 scrollToBottom();
                 
-                // Enviar pregunta al servidor
+                console.log('Enviando pregunta al chatbot:', message, 'entityType:', entityType);
+                
                 fetch('/api/chatbot/ask', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
+                   headers: {
+                       'Content-Type': 'application/json',
+                   },
+                   credentials: 'same-origin',   // <-- aquí
+                   headers: {
+                       'Content-Type': 'application/json',
+                   },
                     body: JSON.stringify({
                         question: message,
                         entityType: entityType
                     }),
                 })
-                .then(response => response.json())
-                .then(data => {
-                    // Eliminar indicador de escritura
+
+                .then(response => {
+                    console.log('Respuesta HTTP recibida:', response.status);
+                    return response.json().then(data => ({ status: response.status, data }));
+                })
+                .then(({ status, data }) => {
                     document.getElementById('typing-indicator').remove();
+                    console.log('Datos recibidos del chatbot:', data);
                     
-                    // Añadir respuesta del bot con formato según el tipo
                     let type = 'normal';
                     if (data.responseType) {
                         switch(data.responseType) {
                             case 'NO_INFORMATION':
-                                type = 'warning';
-                                break;
+                                type = 'warning'; break;
                             case 'ERROR':
-                                type = 'danger';
-                                break;
+                                type = 'danger'; break;
                             case 'CLARIFICATION':
-                                type = 'info';
-                                break;
+                                type = 'info'; break;
                         }
                     }
                     
                     appendBotMessage(data.answer, type);
                 })
                 .catch(error => {
-                    console.error('Error:', error);
+                    console.error('Error en fetch:', error);
                     document.getElementById('typing-indicator').remove();
                     appendBotMessage('Lo siento, ha ocurrido un error al procesar tu pregunta.', 'danger');
                 });
@@ -164,16 +168,9 @@
             function appendBotMessage(message, type = 'normal') {
                 const messageElement = document.createElement('div');
                 messageElement.className = 'bot-message';
-                
-                // Añadir clase según el tipo de respuesta
-                if (type === 'warning') {
-                    messageElement.classList.add('warning');
-                } else if (type === 'danger') {
-                    messageElement.classList.add('danger');
-                } else if (type === 'info') {
-                    messageElement.classList.add('info');
-                }
-                
+                if (type === 'warning')      messageElement.classList.add('warning');
+                else if (type === 'danger')  messageElement.classList.add('danger');
+                else if (type === 'info')    messageElement.classList.add('info');
                 messageElement.textContent = message;
                 chatContainer.appendChild(messageElement);
                 scrollToBottom();
