@@ -33,7 +33,6 @@ public class CustomAuthenticationSuccessHandler extends SimpleUrlAuthenticationS
         jwtCookie.setHttpOnly(true); //No accesible desde js
         jwtCookie.setMaxAge(60 * 60 * 24); // 24 horas en segundos
         
-        // Tu configuración indica que quieres cookies seguras
         jwtCookie.setSecure(true); // Solo para HTTPS
         
         response.addCookie(jwtCookie);

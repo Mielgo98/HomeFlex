@@ -1,4 +1,3 @@
-// src/main/java/com/example/demo/chatbot/service/ChatbotServiceImpl.java
 package com.example.demo.chatbot.service;
 
 import com.example.demo.chatbot.model.Answer;
@@ -44,12 +43,18 @@ public class ChatbotServiceImpl implements IChatbotService {
     public Answer getAnswer(String question, EntityType entityType) {
         logger.info("→ Procesando pregunta [{}] para entidad [{}]", question, entityType);
         try {
+            // Aseguramos que entityType no sea null
+            if (entityType == null) {
+                entityType = EntityType.PROPERTY; // Valor por defecto
+            }
+            
+            // Busca documentos similares en la base de datos vectorial
             List<DocumentEmbedding> similarDocs = embeddingService.similaritySearch(question, entityType, 5);
             logger.debug("  • Documentos similares encontrados: {}", similarDocs.size());
 
             if (similarDocs.isEmpty()) {
                 logger.warn("  • No se encontraron documentos relevantes para la consulta");
-                return new Answer("Lo siento, no tengo información sobre esa consulta.", ResponseType.NO_INFORMATION);
+                return new Answer("Lo siento, no tengo información sobre esa consulta en nuestra base de datos de propiedades.", ResponseType.NO_INFORMATION);
             }
 
             List<String> contentList = similarDocs.stream()
@@ -57,16 +62,19 @@ public class ChatbotServiceImpl implements IChatbotService {
                     .collect(Collectors.toList());
             logger.debug("  • Contenido de documentos: {}", contentList);
 
+            // Seleccionamos la plantilla adecuada según el tipo de entidad
             Resource template = (entityType == EntityType.PROPERTY)
                     ? propertyPromptTemplate
                     : generalPromptTemplate;
 
+            // Creamos el prompt basado en la plantilla
             PromptTemplate pt = new PromptTemplate(template);
             Prompt prompt = pt.create(Map.of(
                     "input", question,
-                    "documents", String.join("\n", contentList)
+                    "documents", String.join("\n\n", contentList)
             ));
 
+            // Llamamos al modelo de IA para obtener respuesta
             ChatResponse response = chatModel.call(prompt);
             String responseText = response.getResult().getOutput().getText();
             logger.info("← Texto de respuesta: {}", responseText);
@@ -86,7 +94,8 @@ public class ChatbotServiceImpl implements IChatbotService {
         String lower = response.toLowerCase();
         if (lower.contains("no tengo información") ||
             lower.contains("no dispongo de datos") ||
-            lower.contains("no puedo encontrar")) {
+            lower.contains("no puedo encontrar") ||
+            lower.contains("no tengo detalles")) {
             return ResponseType.NO_INFORMATION;
         } else if (lower.contains("podrías especificar") ||
                    lower.contains("necesito más detalles") ||

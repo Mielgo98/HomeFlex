@@ -116,9 +116,7 @@ public class SecurityConfig {
                 .securityMatcher("/api/**")
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(authorize -> authorize
-                    // Hacemos público el endpoint del chatbot
                     .requestMatchers("/api/auth/**", "/api/chatbot/ask").permitAll()
-                    // el resto de la API sigue requiriendo JWT
                     .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session

@@ -19,9 +19,24 @@ public class ChatbotController {
 
     @PostMapping("/ask")
     public Answer askQuestion(@RequestBody Question question) {
-        log.info("Pregunta recibida: {}", question.question());
-        Answer answer = chatbotService.getAnswer(question.question(), question.entityType());
-        log.info("Respuesta enviada: {} ({})", answer.answer(), answer.responseType());
-        return answer;
+        log.info("Pregunta recibida: '{}', tipo: {}", question.question(), question.entityType());
+        
+        // Verificar que los datos de entrada sean válidos
+        if (question.question() == null || question.question().trim().isEmpty()) {
+            log.warn("Se recibió una pregunta vacía");
+            return new Answer("Por favor, formula una pregunta válida.", 
+                            com.example.demo.chatbot.model.ResponseType.ERROR);
+        }
+        
+        try {
+            // Llamar al servicio para obtener la respuesta
+            Answer answer = chatbotService.getAnswer(question.question(), question.entityType());
+            log.info("Respuesta enviada: '{}' ({})", answer.answer(), answer.responseType());
+            return answer;
+        } catch (Exception e) {
+            log.error("Error al procesar la pregunta: {}", e.getMessage(), e);
+            return new Answer("Lo siento, ocurrió un error al procesar tu consulta: " + e.getMessage(),
+                            com.example.demo.chatbot.model.ResponseType.ERROR);
+        }
     }
 }

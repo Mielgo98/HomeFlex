@@ -75,111 +75,113 @@
     </div>
     
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const chatContainer = document.getElementById('chat-container');
-            const userInput = document.getElementById('user-input');
-            const sendBtn = document.getElementById('send-btn');
-            const entityTypeInputs = document.querySelectorAll('input[name="entityType"]');
+ // Corrige el archivo src/main/resources/templates/chatbot/chatbot.html
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const chatContainer = document.getElementById('chat-container');
+        const userInput = document.getElementById('user-input');
+        const sendBtn = document.getElementById('send-btn');
+        const entityTypeInputs = document.querySelectorAll('input[name="entityType"]');
+        
+        sendBtn.addEventListener('click', sendMessage);
+        userInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+        
+        function sendMessage() {
+            const message = userInput.value.trim();
+            if (message === '') return;
             
-            sendBtn.addEventListener('click', sendMessage);
-            userInput.addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') {
-                    sendMessage();
+            // Obtener el tipo de entidad seleccionado
+            let entityType = "property"; // Por defecto property
+            entityTypeInputs.forEach(input => {
+                if (input.checked) {
+                    entityType = input.value;
                 }
             });
             
-            function sendMessage() {
-                const message = userInput.value.trim();
-                if (message === '') return;
+            appendUserMessage(message);
+            userInput.value = '';
+            
+            // Indicador de escritura
+            const typingIndicator = document.createElement('div');
+            typingIndicator.className = 'bot-message';
+            typingIndicator.id = 'typing-indicator';
+            typingIndicator.textContent = 'Escribiendo...';
+            chatContainer.appendChild(typingIndicator);
+            scrollToBottom();
+            
+            console.log('Enviando pregunta al chatbot:', message, 'entityType:', entityType);
+            
+            // Ajuste: Asegurarse de que se está enviando correctamente el tipo de entidad
+            fetch('/api/chatbot/ask', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    question: message,
+                    entityType: entityType  // Aseguramos que sea el valor correcto
+                }),
+                credentials: 'same-origin'
+            })
+            .then(response => {
+                console.log('Respuesta HTTP recibida:', response.status);
+                if (!response.ok) {
+                    throw new Error('Error en la respuesta del servidor: ' + response.status);
+                }
+                return response.json();
+            })
+            .then(data => {
+                document.getElementById('typing-indicator')?.remove();
+                console.log('Datos recibidos del chatbot:', data);
                 
-                // Obtener el tipo de entidad seleccionado
-                let entityType = "property";
-                entityTypeInputs.forEach(input => {
-                    if (input.checked) {
-                        entityType = input.value;
+                let type = 'normal';
+                if (data.responseType) {
+                    switch(data.responseType) {
+                        case 'NO_INFORMATION':
+                            type = 'warning'; break;
+                        case 'ERROR':
+                            type = 'danger'; break;
+                        case 'CLARIFICATION':
+                            type = 'info'; break;
                     }
-                });
+                }
                 
-                appendUserMessage(message);
-                userInput.value = '';
-                
-                // Indicador de escritura
-                const typingIndicator = document.createElement('div');
-                typingIndicator.className = 'bot-message';
-                typingIndicator.id = 'typing-indicator';
-                typingIndicator.textContent = 'Escribiendo...';
-                chatContainer.appendChild(typingIndicator);
-                scrollToBottom();
-                
-                console.log('Enviando pregunta al chatbot:', message, 'entityType:', entityType);
-                
-                fetch('/api/chatbot/ask', {
-                    method: 'POST',
-                   headers: {
-                       'Content-Type': 'application/json',
-                   },
-                   credentials: 'same-origin',   // <-- aquí
-                   headers: {
-                       'Content-Type': 'application/json',
-                   },
-                    body: JSON.stringify({
-                        question: message,
-                        entityType: entityType
-                    }),
-                })
-
-                .then(response => {
-                    console.log('Respuesta HTTP recibida:', response.status);
-                    return response.json().then(data => ({ status: response.status, data }));
-                })
-                .then(({ status, data }) => {
-                    document.getElementById('typing-indicator').remove();
-                    console.log('Datos recibidos del chatbot:', data);
-                    
-                    let type = 'normal';
-                    if (data.responseType) {
-                        switch(data.responseType) {
-                            case 'NO_INFORMATION':
-                                type = 'warning'; break;
-                            case 'ERROR':
-                                type = 'danger'; break;
-                            case 'CLARIFICATION':
-                                type = 'info'; break;
-                        }
-                    }
-                    
-                    appendBotMessage(data.answer, type);
-                })
-                .catch(error => {
-                    console.error('Error en fetch:', error);
-                    document.getElementById('typing-indicator').remove();
-                    appendBotMessage('Lo siento, ha ocurrido un error al procesar tu pregunta.', 'danger');
-                });
-            }
-            
-            function appendUserMessage(message) {
-                const messageElement = document.createElement('div');
-                messageElement.className = 'user-message';
-                messageElement.textContent = message;
-                chatContainer.appendChild(messageElement);
-                scrollToBottom();
-            }
-            
-            function appendBotMessage(message, type = 'normal') {
-                const messageElement = document.createElement('div');
-                messageElement.className = 'bot-message';
-                if (type === 'warning')      messageElement.classList.add('warning');
-                else if (type === 'danger')  messageElement.classList.add('danger');
-                else if (type === 'info')    messageElement.classList.add('info');
-                messageElement.textContent = message;
-                chatContainer.appendChild(messageElement);
-                scrollToBottom();
-            }
-            
-            function scrollToBottom() {
-                chatContainer.scrollTop = chatContainer.scrollHeight;
-            }
-        });
+                appendBotMessage(data.answer, type);
+            })
+            .catch(error => {
+                console.error('Error en fetch:', error);
+                document.getElementById('typing-indicator')?.remove();
+                appendBotMessage('Lo siento, ha ocurrido un error al procesar tu pregunta: ' + error.message, 'danger');
+            });
+        }
+        
+        function appendUserMessage(message) {
+            const messageElement = document.createElement('div');
+            messageElement.className = 'user-message';
+            messageElement.textContent = message;
+            chatContainer.appendChild(messageElement);
+            scrollToBottom();
+        }
+        
+        function appendBotMessage(message, type = 'normal') {
+            const messageElement = document.createElement('div');
+            messageElement.className = 'bot-message';
+            if (type === 'warning')      messageElement.classList.add('warning');
+            else if (type === 'danger')  messageElement.classList.add('danger');
+            else if (type === 'info')    messageElement.classList.add('info');
+            messageElement.textContent = message;
+            chatContainer.appendChild(messageElement);
+            scrollToBottom();
+        }
+        
+        function scrollToBottom() {
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+    });
     </script>
 </body>
 </html>

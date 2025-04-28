@@ -41,12 +41,10 @@ public class PerfilController {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         String username = auth.getName();
         
-        // Buscar el usuario en la base de datos
         UsuarioVO usuario = usuarioService.buscarPorUsername(username);
         
-        // Si no hay un PerfilDTO en el modelo (por ejemplo, después de un error), creamos uno nuevo
+        
         if (!model.containsAttribute("perfilDTO")) {
-            // Convertir el usuario a DTO para el formulario
             PerfilDTO perfilDTO = new PerfilDTO();
             perfilDTO.setId(usuario.getId());
             perfilDTO.setUsername(usuario.getUsername());
@@ -59,7 +57,6 @@ public class PerfilController {
             model.addAttribute("perfilDTO", perfilDTO);
         }
         
-        // Agregar información adicional al modelo si es necesario
         model.addAttribute("usuarioRoles", usuario.getRoles());
         
         return "usuario/perfil";
@@ -75,23 +72,18 @@ public class PerfilController {
             Model model,
             RedirectAttributes redirectAttributes) {
         
-        // Verificar errores de validación
         if (bindingResult.hasErrors()) {
-            // Si hay errores, volver al formulario mostrando los mensajes
             return "usuario/perfil";
         }
         
         try {
-            // Llamar al servicio para actualizar el perfil
             UsuarioVO usuarioActualizado = usuarioService.actualizarPerfil(perfilDTO);
             
-            // Agregar mensaje de éxito para mostrar en la redirección
             redirectAttributes.addFlashAttribute("mensajeExito", 
                     "¡Tu perfil ha sido actualizado correctamente!");
             
             return "redirect:/perfil";
         } catch (Exception e) {
-            // En caso de error, volver al formulario mostrando el mensaje de error
             model.addAttribute("mensajeError", "Error al actualizar el perfil: " + e.getMessage());
             return "usuario/perfil";
         }
@@ -102,7 +94,6 @@ public class PerfilController {
      */
     @GetMapping("/cambiar-password")
     public String mostrarFormularioCambiarPassword(Model model) {
-        // Si no hay un dto en el modelo (por ejemplo, después de un error), creamos uno nuevo
         if (!model.containsAttribute("cambiarPasswordDTO")) {
             model.addAttribute("cambiarPasswordDTO", new CambiarPasswordDTO());
         }
@@ -120,30 +111,25 @@ public class PerfilController {
             Model model,
             RedirectAttributes redirectAttributes) {
         
-        // Verificar que las contraseñas nuevas coincidan
         if (!cambiarPasswordDTO.getPasswordNueva().equals(cambiarPasswordDTO.getConfirmPassword())) {
             bindingResult.addError(new FieldError("cambiarPasswordDTO", "confirmPassword", 
                 "Las contraseñas no coinciden"));
         }
         
-        // Verificar errores de validación
         if (bindingResult.hasErrors()) {
             return "usuario/cambiar-password";
         }
         
         try {
-            // Llamar al servicio para cambiar la contraseña
             usuarioService.cambiarPassword(
                     cambiarPasswordDTO.getPasswordActual(),
                     cambiarPasswordDTO.getPasswordNueva());
             
-            // Agregar mensaje de éxito para mostrar en la redirección
             redirectAttributes.addFlashAttribute("mensajeExito", 
                     "¡Tu contraseña ha sido actualizada correctamente!");
             
             return "redirect:/perfil";
         } catch (Exception e) {
-            // En caso de error, volver al formulario mostrando el mensaje de error
             model.addAttribute("mensajeError", "Error al cambiar la contraseña: " + e.getMessage());
             return "usuario/cambiar-password";
         }
@@ -153,7 +139,6 @@ public class PerfilController {
      */
     @GetMapping("/baja-usuario")
     public String mostrarFormularioBaja(Model model) {
-        // Si no hay un dto en el modelo, creamos uno nuevo
         if (!model.containsAttribute("bajaUsuarioDTO")) {
             model.addAttribute("bajaUsuarioDTO", new BajaUsuarioDTO());
         }
@@ -172,19 +157,16 @@ public class PerfilController {
             HttpServletRequest request,
             HttpServletResponse response) {
         
-        // Verificar que se ha confirmado la baja
         if (!bajaUsuarioDTO.isConfirmacion()) {
             bindingResult.rejectValue("confirmacion", "error.bajaUsuarioDTO", 
                                      "Debes confirmar que deseas dar de baja tu cuenta");
         }
         
-        // Verificar errores de validación
         if (bindingResult.hasErrors()) {
             return "usuario/confirmar-baja";
         }
         
         try {
-            // Llamar al servicio para dar de baja al usuario
             boolean resultado = usuarioService.darDeBajaUsuario(bajaUsuarioDTO.getPassword());
             
             if (resultado) {
@@ -194,7 +176,6 @@ public class PerfilController {
                     session.invalidate();
                 }
                 
-                // Borrar las cookies de autenticación
                 Cookie[] cookies = request.getCookies();
                 if (cookies != null) {
                     for (Cookie cookie : cookies) {
@@ -207,10 +188,8 @@ public class PerfilController {
                     }
                 }
                 
-                // Limpiar el contexto de seguridad
                 SecurityContextHolder.clearContext();
                 
-                // Redireccionar a la página de confirmación
                 return "redirect:/cuenta-eliminada";
             } else {
                 model.addAttribute("mensajeError", "No se pudo dar de baja la cuenta. Intenta nuevamente.");

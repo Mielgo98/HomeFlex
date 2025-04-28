@@ -30,7 +30,7 @@ public interface DocumentEmbeddingRepository extends JpaRepository<DocumentEmbed
 	
     /**
      * Vecinos más cercanos dentro de un tipo (consulta nativa).
-     * @param entityType     el nombre del enum (p.ej. "PROPERTY")
+     * @param entityType     el nombre del enum (p.ej. "property")
      * @param vectorLiteral  el literal "[v1,v2,…]" casteado luego a vector
      * @param limit          cuántos vecinos devolver
      */
