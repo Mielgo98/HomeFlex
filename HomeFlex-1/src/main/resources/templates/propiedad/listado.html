@@ -1,37 +1,62 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" lang="es">
 <head>
-    <th:block th:replace="fragments/head :: head('Listado de Propiedades')"/>
-    <link rel="stylesheet" th:href="@{/css/property-listado.css}"/>
+    <!-- Fragmento común: meta, main.css, título dinámico -->
+    <th:block th:replace="fragments/head :: head('Listado de Propiedades')" />
+    <!-- CSS específico de listado -->
+    <link rel="stylesheet" th:href="@{/css/property-listado.css}" />
 </head>
 <body>
+    <!-- Header común -->
     <div th:replace="fragments/header :: header"></div>
 
     <main class="container">
         <h1>Propiedades</h1>
-        <div class="grid">
+
+        <!-- GRID de tarjetas con ID para JS -->
+        <div class="grid" id="gridContainer">
             <div class="card" th:each="propiedad : ${propiedades.content}">
                 <img th:src="${propiedad.fotoPrincipal}" th:alt="${propiedad.titulo}" />
                 <div class="card-body">
                     <h2 th:text="${propiedad.titulo}">Título</h2>
-                    <p th:text="${#numbers.formatDecimal(propiedad.precioDia, 1, 'COMMA', 2, 'POINT')} + ' €/día'">
+                    <p th:text="${#numbers.formatDecimal(propiedad.precioDia,1,'COMMA',2,'POINT')} + ' €/día'">
                         Precio
                     </p>
                     <a th:href="@{'/propiedades/' + ${propiedad.id}}" class="btn">Ver detalle</a>
                 </div>
             </div>
         </div>
-        <div class="pagination">
-            <button id="prev" th:disabled="${paginaActual == 0}">Anterior</button>
-            <span>Página <span th:text="${paginaActual + 1}">1</span> de <span th:text="${totalPaginas}">1</span></span>
-            <button id="next" th:disabled="${paginaActual + 1 >= totalPaginas}">Siguiente</button>
-        </div>
+
+        <!-- Barra de paginación atractiva -->
+        <nav class="pagination-container" id="paginationContainer">
+            <button id="prevBtn"
+                    aria-label="Página anterior"
+                    th:disabled="${paginaActual == 0}">
+                ← Anterior
+            </button>
+            <span class="page-info">
+                Página <strong th:text="${paginaActual + 1}">1</strong> de
+                <strong th:text="${totalPaginas}">1</strong>
+            </span>
+            <button id="nextBtn"
+                    aria-label="Página siguiente"
+                    th:disabled="${paginaActual + 1 >= totalPaginas}">
+                Siguiente →
+            </button>
+        </nav>
     </main>
+
+    <!-- Exponer pageSize al JS -->
+    <script th:inline="javascript">
+    /*<![CDATA[*/
+      window.pageSize =  /*[[${pageSize}]]*/ 0;
+    /*]]>*/
+    </script>
 
     <!-- Footer común -->
     <div th:replace="fragments/footer :: footer"></div>
 
-    <!-- Script de paginación -->
+    <!-- Script de paginación asíncrona -->
     <script defer th:src="@{/js/property-listado.js}"></script>
 </body>
 </html>

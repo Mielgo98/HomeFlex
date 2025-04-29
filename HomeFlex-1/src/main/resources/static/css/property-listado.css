@@ -324,3 +324,38 @@
 .property-card {
   animation: fadeIn 0.5s ease-out forwards;
 }
+
+/* Paginación atractiva y centrada */
+.pagination-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+  margin: 2rem 0;
+}
+
+.pagination-container button {
+  background: #0066cc;
+  color: #fff;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 0.25rem;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.1s ease;
+}
+
+.pagination-container button:hover:not(:disabled) {
+  background: #005bb5;
+  transform: translateY(-1px);
+}
+
+.pagination-container button:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+.pagination-container .page-info {
+  font-size: 1rem;
+  color: #333;
+}

@@ -1,7 +1,6 @@
 package com.example.demo.propiedad.control;
 
 import java.security.Principal;
-import java.util.ArrayList;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -61,23 +60,25 @@ public class PropiedadRestController {
             sort = Sort.by("fechaCreacion").descending();
         }
         
+        // Construir el PageRequest
         PageRequest pageable = PageRequest.of(pagina, size, sort);
         
-        // Aplicar filtros si existen
+        // Obtener las propiedades (con o sin filtro de ciudad)
         Page<PropiedadDTO> propiedades;
         if (ciudad != null && !ciudad.isEmpty()) {
-            propiedades = propiedadService.busquedaAvanzada(ciudad, null, null, null, null, null, null, pagina, size);
+            propiedades = propiedadService
+                .busquedaAvanzada(ciudad, null, null, null, null, null, null, pagina, size);
         } else {
             propiedades = propiedadService.obtenerPropiedadesPaginadas(pagina, size);
         }
         
+        // Atributos para la vista
         model.addAttribute("propiedades", propiedades);
         model.addAttribute("paginaActual", pagina);
         model.addAttribute("totalPaginas", propiedades.getTotalPages());
+        model.addAttribute("pageSize", propiedades.getSize());        // ← Nuevo atributo
         model.addAttribute("ordenar", ordenar);
         model.addAttribute("ciudad", ciudad);
-        
-        // Añadir ciudades populares para filtrado rápido
         model.addAttribute("ciudadesPopulares", propiedadService.obtenerCiudadesPopulares());
         
         return "propiedad/listado";
@@ -108,7 +109,6 @@ public class PropiedadRestController {
             if (principal != null) {
                 String username = principal.getName();
                 List<ReservaDTO> reservasUsuario = reservaService.obtenerReservasUsuario(username);
-                // Comprobar si alguna reserva del usuario corresponde a esta propiedad
                 puedeValorar = reservasUsuario.stream()
                     .anyMatch(r -> r.getPropiedadId().equals(id));
                 model.addAttribute("puedeValorar", puedeValorar);
@@ -127,15 +127,6 @@ public class PropiedadRestController {
                 propiedadesSimilares = propiedadesSimilares.subList(0, 4);
             }
             model.addAttribute("propiedadesSimilares", propiedadesSimilares);
-            
-            // Obtener fechas ocupadas para los próximos 3 meses (para calendario)
-            // Solo si se está implementando un calendario en el front
-            /*
-            LocalDate hoy = LocalDate.now();
-            LocalDate tresMesesDespues = hoy.plusMonths(3);
-            List<LocalDate> fechasOcupadas = reservaService.obtenerFechasOcupadas(id, hoy, tresMesesDespues);
-            model.addAttribute("fechasOcupadas", fechasOcupadas);
-            */
             
             return "propiedad/detalle";
         } catch (Exception e) {
@@ -179,8 +170,6 @@ public class PropiedadRestController {
         model.addAttribute("propiedades", propiedades);
         model.addAttribute("paginaActual", pagina);
         model.addAttribute("totalPaginas", propiedades.getTotalPages());
-        
-        // Mantener los parámetros de búsqueda para paginación
         model.addAttribute("ciudad", ciudad);
         model.addAttribute("pais", pais);
         model.addAttribute("capacidad", capacidad);
