@@ -22,7 +22,6 @@ public class PropiedadDTO {
     private Integer banos;
     private String fotoPrincipal;
     
-    // Constructor modificado para evitar problemas de concurrencia
     public PropiedadDTO(PropiedadVO propiedad) {
         this.id = propiedad.getId();
         this.titulo = propiedad.getTitulo();
