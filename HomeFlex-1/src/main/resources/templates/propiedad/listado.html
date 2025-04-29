@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Listado de Propiedades</title>
+  <link rel="stylesheet" th:href="@{/css/property-listado.css}">
+  <script defer th:src="@{/js/property-listado.js}"></script>
+</head>
+<body>
+  <div th:replace="fragments/header :: header"></div>
+  <main class="container">
+    <h1>Propiedades</h1>
+    <div class="grid">
+      <div class="card" th:each="propiedad : ${propiedades.content}">
+        <img th:src="${propiedad.imagenPrincipalUrl}"
+             th:alt="${propiedad.titulo}" />
+        <div class="card-body">
+          <h2 th:text="${propiedad.titulo}">Título</h2>
+          <p th:text="${#numbers.formatDecimal(propiedad.precioDia, 1, 'COMMA', 2, 'POINT')} + ' €/día'">
+            Precio
+          </p>
+          <a th:href="@{'/propiedades/' + ${propiedad.id}}" class="btn">Ver detalle</a>
+        </div>
+      </div>
+    </div>
+    <div class="pagination">
+      <button id="prev" th:disabled="${paginaActual == 0}">Anterior</button>
+      <span>Página <span th:text="${paginaActual + 1}">1</span> de <span th:text="${totalPaginas}">1</span></span>
+      <button id="next" th:disabled="${paginaActual + 1 >= totalPaginas}">Siguiente</button>
+    </div>
+  </main>
+  <div th:replace="fragments/footer :: footer"></div>
+</body>
+</html>

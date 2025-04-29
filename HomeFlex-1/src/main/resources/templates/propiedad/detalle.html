@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
+<head>
+    <head th:replace="fragments/head :: head(${propiedad.titulo} + ' – Detalle')">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <link rel="stylesheet" th:href="@{/css/property-detail.css}" />
+</head>
+<body>
+  <!-- Header común -->
+  <div th:replace="fragments/header :: header"></div>
+
+  <main class="container">
+    <h1 th:text="${propiedad.titulo}">Título de la propiedad</h1>
+
+    <div class="gallery">
+      <img th:each="foto : ${propiedad.fotos}"
+           th:src="@{${foto.url}}"
+           th:alt="${propiedad.titulo}" />
+    </div>
+
+    <p th:text="${propiedad.descripcion}">Descripción detallada…</p>
+    <p class="price">
+      <strong>Precio:</strong>
+      <span th:text="${#numbers.formatDecimal(propiedad.precioDia, 1, 'COMMA', 2, 'POINT')} + ' €/día'">0 €/día</span>
+    </p>
+
+    <h2>Ubicación</h2>
+    <input type="hidden" id="lat" th:value="${propiedad.latitud}" />
+    <input type="hidden" id="lon" th:value="${propiedad.longitud}" />
+    <div id="map"></div>
+  </main>
+
+  <!-- Footer común -->
+  <div th:replace="fragments/footer :: footer"></div>
+
+  <!-- Leaflet JS desde CDN -->
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <!-- Tu JS de detalle -->
+  <script th:src="@{/js/property-detail.js}"></script>
+</body>
+</html>
