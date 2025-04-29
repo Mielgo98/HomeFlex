@@ -36,14 +36,25 @@ public class RegistroController {
             Model model,
             RedirectAttributes redirectAttributes) {
         
+        // Log para depuración
+        System.out.println("Datos recibidos: " + registroDTO);
+        
         // Validación manual para comprobar si las contraseñas coinciden
         if (!registroDTO.getPassword().equals(registroDTO.getConfirmPassword())) {
             bindingResult.addError(new FieldError("registroDTO", "confirmPassword", 
+                registroDTO.getConfirmPassword(), false, null, null,
                 "Las contraseñas no coinciden"));
         }
         
         if (bindingResult.hasErrors()) {
             System.out.println("Errores de validación: " + bindingResult.getAllErrors());
+            // Agregar todos los errores como atributos para mostrarlos en la vista
+            bindingResult.getAllErrors().forEach(error -> {
+                if (error instanceof FieldError) {
+                    FieldError fieldError = (FieldError) error;
+                    model.addAttribute(fieldError.getField() + "Error", fieldError.getDefaultMessage());
+                }
+            });
             return "registro";
         }
         
@@ -54,7 +65,13 @@ public class RegistroController {
             return "redirect:/login?registroExitoso";
         } catch (Exception e) {
             System.err.println("Error en el proceso de registro: " + e.getMessage());
-            model.addAttribute("errorRegistro", "Error al registrar: " + e.getMessage());
+            if (e.getMessage().contains("username")) {
+                model.addAttribute("usernameError", "El nombre de usuario ya está en uso");
+            } else if (e.getMessage().contains("email")) {
+                model.addAttribute("emailError", "El email ya está registrado");
+            } else {
+                model.addAttribute("errorRegistro", "Error al registrar: " + e.getMessage());
+            }
             return "registro";
         }
     }

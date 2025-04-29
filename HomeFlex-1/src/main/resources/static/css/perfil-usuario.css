@@ -1,0 +1,41 @@
+/* perfil-usuario.css */
+
+/* Marca los labels obligatorios con un asterisco */
+.required-field::after {
+  content: " *";
+  color: #dc3545; /* color de error de Bootstrap */
+}
+
+/* Sombras y bordes */
+.card.shadow {
+  border-radius: 0.5rem;
+  box-shadow: 0 .5rem 1rem rgba(0,0,0,.15);
+}
+
+/* Espaciado en la sección de fortaleza de contraseña */
+.password-strength {
+  margin-top: 0.5rem;
+}
+
+/* Barra de progreso personalizada */
+.password-strength .progress {
+  height: 5px;
+  border-radius: 0.25rem;
+  overflow: hidden;
+}
+
+/* Texto de ayuda de fortaleza */
+#password-strength-text {
+  font-size: 0.875rem;
+  color: #6c757d;
+}
+
+/* Estilos específicos para inputs cuando hay error */
+.was-validated .form-control:invalid {
+  border-color: #dc3545;
+  padding-right: calc(1.5em + .75rem);
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='%23dc3545' viewBox='0 0 8 8'%3e%3ccircle cx='4' cy='4' r='4'/%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right calc(.375em + .1875rem) center;
+  background-size: calc(.75em + .375rem) calc(.75em + .375rem);
+}

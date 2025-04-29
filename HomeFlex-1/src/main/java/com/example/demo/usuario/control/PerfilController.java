@@ -24,6 +24,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
+import java.util.Collections;
 
 @Controller
 @RequestMapping("/perfil")
@@ -37,12 +38,9 @@ public class PerfilController {
      */
     @GetMapping
     public String mostrarPerfil(Model model) {
-        // Obtener el usuario autenticado
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         String username = auth.getName();
-        
         UsuarioVO usuario = usuarioService.buscarPorUsername(username);
-        
         
         if (!model.containsAttribute("perfilDTO")) {
             PerfilDTO perfilDTO = new PerfilDTO();
@@ -53,12 +51,10 @@ public class PerfilController {
             perfilDTO.setApellidos(usuario.getApellidos());
             perfilDTO.setTelefono(usuario.getTelefono());
             perfilDTO.setFotoPerfil(usuario.getFotoPerfil());
-            
             model.addAttribute("perfilDTO", perfilDTO);
         }
-        
+
         model.addAttribute("usuarioRoles", usuario.getRoles());
-        
         return "usuario/perfil";
     }
     
@@ -73,18 +69,20 @@ public class PerfilController {
             RedirectAttributes redirectAttributes) {
         
         if (bindingResult.hasErrors()) {
+            model.addAttribute("usuarioRoles", usuarioService.buscarPorUsername(
+                SecurityContextHolder.getContext().getAuthentication().getName()).getRoles());
             return "usuario/perfil";
         }
         
         try {
-            UsuarioVO usuarioActualizado = usuarioService.actualizarPerfil(perfilDTO);
-            
-            redirectAttributes.addFlashAttribute("mensajeExito", 
+            usuarioService.actualizarPerfil(perfilDTO);
+            redirectAttributes.addFlashAttribute("mensajeExito",
                     "¡Tu perfil ha sido actualizado correctamente!");
-            
             return "redirect:/perfil";
         } catch (Exception e) {
             model.addAttribute("mensajeError", "Error al actualizar el perfil: " + e.getMessage());
+            model.addAttribute("usuarioRoles", usuarioService.buscarPorUsername(
+                SecurityContextHolder.getContext().getAuthentication().getName()).getRoles());
             return "usuario/perfil";
         }
     }
@@ -97,6 +95,10 @@ public class PerfilController {
         if (!model.containsAttribute("cambiarPasswordDTO")) {
             model.addAttribute("cambiarPasswordDTO", new CambiarPasswordDTO());
         }
+        // Añadir roles para evitar proyección nula
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        UsuarioVO usuario = usuarioService.buscarPorUsername(auth.getName());
+        model.addAttribute("usuarioRoles", usuario.getRoles());
         
         return "usuario/cambiar-password";
     }
@@ -117,6 +119,10 @@ public class PerfilController {
         }
         
         if (bindingResult.hasErrors()) {
+            // Añadir roles de nuevo antes de retornar
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            UsuarioVO usuario = usuarioService.buscarPorUsername(auth.getName());
+            model.addAttribute("usuarioRoles", usuario.getRoles());
             return "usuario/cambiar-password";
         }
         
@@ -127,13 +133,15 @@ public class PerfilController {
             
             redirectAttributes.addFlashAttribute("mensajeExito", 
                     "¡Tu contraseña ha sido actualizada correctamente!");
-            
             return "redirect:/perfil";
         } catch (Exception e) {
             model.addAttribute("mensajeError", "Error al cambiar la contraseña: " + e.getMessage());
+            model.addAttribute("usuarioRoles", usuarioService.buscarPorUsername(
+                SecurityContextHolder.getContext().getAuthentication().getName()).getRoles());
             return "usuario/cambiar-password";
         }
     }
+    
     /**
      * Muestra el formulario para dar de baja al usuario
      */
@@ -142,7 +150,8 @@ public class PerfilController {
         if (!model.containsAttribute("bajaUsuarioDTO")) {
             model.addAttribute("bajaUsuarioDTO", new BajaUsuarioDTO());
         }
-        
+        model.addAttribute("usuarioRoles", usuarioService.buscarPorUsername(
+            SecurityContextHolder.getContext().getAuthentication().getName()).getRoles());
         return "usuario/confirmar-baja";
     }
 
@@ -163,6 +172,8 @@ public class PerfilController {
         }
         
         if (bindingResult.hasErrors()) {
+            model.addAttribute("usuarioRoles", usuarioService.buscarPorUsername(
+                SecurityContextHolder.getContext().getAuthentication().getName()).getRoles());
             return "usuario/confirmar-baja";
         }
         
@@ -170,12 +181,10 @@ public class PerfilController {
             boolean resultado = usuarioService.darDeBajaUsuario(bajaUsuarioDTO.getPassword());
             
             if (resultado) {
-                // Invalidar la sesión
                 HttpSession session = request.getSession(false);
                 if (session != null) {
                     session.invalidate();
                 }
-                
                 Cookie[] cookies = request.getCookies();
                 if (cookies != null) {
                     for (Cookie cookie : cookies) {
@@ -187,16 +196,18 @@ public class PerfilController {
                         }
                     }
                 }
-                
                 SecurityContextHolder.clearContext();
-                
                 return "redirect:/cuenta-eliminada";
             } else {
                 model.addAttribute("mensajeError", "No se pudo dar de baja la cuenta. Intenta nuevamente.");
+                model.addAttribute("usuarioRoles", usuarioService.buscarPorUsername(
+                    SecurityContextHolder.getContext().getAuthentication().getName()).getRoles());
                 return "usuario/confirmar-baja";
             }
         } catch (Exception e) {
             model.addAttribute("mensajeError", "Error al dar de baja la cuenta: " + e.getMessage());
+            model.addAttribute("usuarioRoles", usuarioService.buscarPorUsername(
+                SecurityContextHolder.getContext().getAuthentication().getName()).getRoles());
             return "usuario/confirmar-baja";
         }
     }
