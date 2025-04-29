@@ -12,7 +12,9 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 
 @Entity
 @Table(name = "foto")
@@ -25,9 +27,11 @@ public class FotoVO {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     
-    // Relacion con la propiedad
+    // Relacion con la propiedad - excluida del hashCode y equals para evitar recursión
     @ManyToOne
     @JoinColumn(name = "propiedad_id", nullable = false)
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     private PropiedadVO propiedad;
     
     @Column(nullable = false, length = 255)

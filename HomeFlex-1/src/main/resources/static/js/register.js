@@ -1,20 +1,22 @@
-document.getElementById('registerForm').addEventListener('submit', e => {
-  const email = document.getElementById('email').value.trim();
-  const user = document.getElementById('usernameReg').value.trim();
-  const pass = document.getElementById('passwordReg').value;
-  const confirm = document.getElementById('confirmPassword').value;
-  if (!email || !user || !pass || !confirm) {
-    e.preventDefault();
-    alert('Todos los campos son obligatorios.');
-    return;
-  }
-  if (pass.length < 8) {
-    e.preventDefault();
-    alert('La contraseña debe tener al menos 8 caracteres.');
-    return;
-  }
-  if (pass !== confirm) {
-    e.preventDefault();
-    alert('Las contraseñas no coinciden.');
+document.addEventListener('DOMContentLoaded', function() {
+  const registerForm = document.getElementById('registerForm');
+  if (registerForm) {
+    registerForm.addEventListener('submit', function(e) {
+      const password = document.getElementById('password');
+      const confirmPassword = document.getElementById('confirmPassword');
+      
+      if (password && confirmPassword) {
+        if (password.value.length < 8) {
+          e.preventDefault();
+          alert('La contraseña debe tener al menos 8 caracteres.');
+          return;
+        }
+        
+        if (password.value !== confirmPassword.value) {
+          e.preventDefault();
+          alert('Las contraseñas no coinciden.');
+        }
+      }
+    });
   }
 });

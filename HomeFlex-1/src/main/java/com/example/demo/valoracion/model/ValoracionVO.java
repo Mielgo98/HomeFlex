@@ -18,7 +18,9 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 
 /**
  * Entidad que representa una valoración de un usuario sobre una propiedad
@@ -36,10 +38,14 @@ public class ValoracionVO {
     
     @ManyToOne
     @JoinColumn(name = "propiedad_id", nullable = false)
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     private PropiedadVO propiedad;
     
     @ManyToOne
     @JoinColumn(name = "usuario_id", nullable = false)
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     private UsuarioVO usuario;
     
     @NotNull
@@ -80,4 +86,26 @@ public class ValoracionVO {
     
     @Column(name = "fecha_respuesta")
     private LocalDateTime fechaRespuesta;
+    
+    /**
+     * Override del método equals para usar solo el ID de la entidad
+     * Esto evita problemas con relaciones bidireccionales
+     */
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof ValoracionVO)) return false;
+        ValoracionVO that = (ValoracionVO) o;
+        return id != null && id.equals(that.getId());
+    }
+
+    /**
+     * Override del método hashCode para usar solo el ID de la entidad
+     * Esto evita problemas con relaciones bidireccionales
+     */
+    @Override
+    public int hashCode() {
+        // Se usa un valor constante si el ID es nulo
+        return id != null ? id.hashCode() : 31;
+    }
 }

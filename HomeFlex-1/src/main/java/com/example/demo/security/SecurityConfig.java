@@ -17,8 +17,8 @@ import org.springframework.security.crypto.argon2.Argon2PasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
+import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
 
 import com.example.demo.jwt.JwtAuthenticationEntryPoint;
 import com.example.demo.jwt.JwtAuthenticationFilter;
@@ -49,12 +49,14 @@ public class SecurityConfig {
                 new AntPathRequestMatcher("/css/**"),
                 new AntPathRequestMatcher("/js/**"),
                 new AntPathRequestMatcher("/images/**"),
-                new AntPathRequestMatcher("/webjars/**")
+                new AntPathRequestMatcher("/webjars/**"),
+                new AntPathRequestMatcher("/favicon.ico")
             );
     }
 
     @Bean
     public PasswordEncoder passwordEncoder() {
+        // Using Argon2 which is more secure than BCrypt
         return new Argon2PasswordEncoder(16, 32, 1, 65536, 3);
     }
 
@@ -102,7 +104,7 @@ public class SecurityConfig {
                     .failureUrl("/login?error=true")
                     .successHandler(authenticationSuccessHandler)
                     .failureHandler(authenticationFailureHandler)
-                    .defaultSuccessUrl("/dashboard", true)
+                    .defaultSuccessUrl("/index", true)
                     .permitAll()
                 )
                 .logout(logout -> logout

@@ -1,5 +1,16 @@
-@charset "UTF-8";
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { font-family: Arial, sans-serif; background: #f7f7f7; color: #333; }
-.container { width: 90%; max-width: 1200px; margin: auto; padding: 1rem 0; }
-.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 1rem; }
+a { text-decoration: none; color: inherit; }
+img { max-width: 100%; display: block; }
+
+/* header.css */
+.navbar-brand {
+  font-weight: bold;
+  color: #007bff !important;
+}
+.nav-link:hover {
+  color: #007bff !important;
+}
+.dropdown-item:active {
+  background-color: #007bff;
+}

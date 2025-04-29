@@ -40,4 +40,26 @@ public class RolVO {
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
     private Set<UsuarioVO> usuarios = new HashSet<>();
+    
+    /**
+     * Override del método equals para usar solo el ID de la entidad
+     * Esto evita problemas con relaciones bidireccionales
+     */
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof RolVO)) return false;
+        RolVO that = (RolVO) o;
+        return id != null && id.equals(that.getId());
+    }
+
+    /**
+     * Override del método hashCode para usar solo el ID de la entidad
+     * Esto evita problemas con relaciones bidireccionales
+     */
+    @Override
+    public int hashCode() {
+        // Se usa un valor constante si el ID es nulo
+        return id != null ? id.hashCode() : 31;
+    }
 }

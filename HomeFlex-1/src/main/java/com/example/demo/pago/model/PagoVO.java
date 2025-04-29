@@ -1,6 +1,5 @@
 package com.example.demo.pago.model;
 
-
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
@@ -19,8 +18,9 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
-
+import lombok.ToString;
 
 /**
  * Entidad para mantener un registro de pagos en la base de datos
@@ -38,10 +38,14 @@ public class PagoVO {
     
     @ManyToOne
     @JoinColumn(name = "reserva_id", nullable = false)
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     private ReservaVO reserva;
     
     @ManyToOne
     @JoinColumn(name = "usuario_id", nullable = false)
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     private UsuarioVO usuario;
     
     @Column(nullable = false, precision = 10, scale = 2)
@@ -74,4 +78,26 @@ public class PagoVO {
     
     @Column(length = 500)
     private String detalles;
+    
+    /**
+     * Override del método equals para usar solo el ID de la entidad
+     * Esto evita problemas con relaciones bidireccionales
+     */
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof PagoVO)) return false;
+        PagoVO that = (PagoVO) o;
+        return id != null && id.equals(that.getId());
+    }
+
+    /**
+     * Override del método hashCode para usar solo el ID de la entidad
+     * Esto evita problemas con relaciones bidireccionales
+     */
+    @Override
+    public int hashCode() {
+        // Se usa un valor constante si el ID es nulo
+        return id != null ? id.hashCode() : 31;
+    }
 }

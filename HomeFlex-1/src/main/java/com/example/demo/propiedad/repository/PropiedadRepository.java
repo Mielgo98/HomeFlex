@@ -15,13 +15,7 @@ import com.example.demo.usuario.model.UsuarioVO;
 
 @Repository
 public interface PropiedadRepository extends JpaRepository<PropiedadVO, Long> {
-    
-    // Buscar propiedades activas
-    List<PropiedadVO> findByActivoTrue();
-    
-    // Paginar propiedades activas
-    Page<PropiedadVO> findByActivoTrue(Pageable pageable);
-    
+     
     // Buscar propiedades de un propietario
     List<PropiedadVO> findByPropietario(UsuarioVO propietario);
     
@@ -42,6 +36,20 @@ public interface PropiedadRepository extends JpaRepository<PropiedadVO, Long> {
     
     // Buscar propiedades con capacidad igual o superior
     List<PropiedadVO> findByCapacidadGreaterThanEqualAndActivoTrue(Integer capacidad);
+    
+    // Consulta optimizada para cargar fotos junto con propiedades (JOIN FETCH)
+    @Query("SELECT DISTINCT p FROM PropiedadVO p LEFT JOIN FETCH p.fotos WHERE p.activo = true")
+    List<PropiedadVO> findByActivoTrueWithFotos();
+    
+    // Consulta optimizada para cargar fotos junto con propiedades paginadas
+    @Query(value = "SELECT DISTINCT p FROM PropiedadVO p LEFT JOIN FETCH p.fotos WHERE p.activo = true",
+           countQuery = "SELECT COUNT(p) FROM PropiedadVO p WHERE p.activo = true")
+    Page<PropiedadVO> findByActivoTrueWithFotos(Pageable pageable);
+    
+    // Mantener los métodos originales por compatibilidad
+    List<PropiedadVO> findByActivoTrue();
+    
+    Page<PropiedadVO> findByActivoTrue(Pageable pageable);
     
     // Búsqueda avanzada
     @Query("SELECT p FROM PropiedadVO p WHERE " +

@@ -19,7 +19,9 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 
 @Entity
 @Table(name = "reserva")
@@ -34,10 +36,14 @@ public class ReservaVO {
     
     @ManyToOne
     @JoinColumn(name = "propiedad_id", nullable = false)
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     private PropiedadVO propiedad;
     
     @ManyToOne
     @JoinColumn(name = "usuario_id", nullable = false)
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     private UsuarioVO usuario; // El inquilino que hace la reserva
     
     @Column(name = "fecha_inicio", nullable = false)
@@ -67,4 +73,26 @@ public class ReservaVO {
     
     @Column(columnDefinition = "TEXT")
     private String comentarios;
+    
+    /**
+     * Override del método equals para usar solo el ID de la entidad
+     * Esto evita problemas con relaciones bidireccionales
+     */
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof ReservaVO)) return false;
+        ReservaVO that = (ReservaVO) o;
+        return id != null && id.equals(that.getId());
+    }
+
+    /**
+     * Override del método hashCode para usar solo el ID de la entidad
+     * Esto evita problemas con relaciones bidireccionales
+     */
+    @Override
+    public int hashCode() {
+        // Se usa un valor constante si el ID es nulo
+        return id != null ? id.hashCode() : 31;
+    }
 }

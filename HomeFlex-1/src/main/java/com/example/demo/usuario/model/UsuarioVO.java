@@ -18,7 +18,9 @@ import jakarta.persistence.ManyToMany;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 
 @Entity
 @Table(name = "usuario")
@@ -56,6 +58,7 @@ public class UsuarioVO {
         joinColumns = @JoinColumn(name = "usuario_id"),
         inverseJoinColumns = @JoinColumn(name = "rol_id")
     )
+    // No es necesario excluir aquí porque la relación con RolVO ya tiene @EqualsAndHashCode.Exclude en RolVO
     private Set<RolVO> roles = new HashSet<>();
     
     @Column(name = "foto_perfil", length = 255)
@@ -69,6 +72,7 @@ public class UsuarioVO {
     
     @Column(name="recordatorio")
     private Boolean recordatorio;
+    
     @Column(name = "is_enabled", nullable = false)
     private Boolean isEnabled;
     
@@ -93,5 +97,27 @@ public class UsuarioVO {
             this.roles = new HashSet<>();
         }
         this.roles.add(rol);
+    }
+
+    /**
+     * Override del método equals para usar solo el ID de la entidad
+     * Esto evita problemas con relaciones bidireccionales
+     */
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof UsuarioVO)) return false;
+        UsuarioVO that = (UsuarioVO) o;
+        return id != null && id.equals(that.getId());
+    }
+
+    /**
+     * Override del método hashCode para usar solo el ID de la entidad
+     * Esto evita problemas con relaciones bidireccionales
+     */
+    @Override
+    public int hashCode() {
+        // Se usa un valor constante si el ID es nulo
+        return id != null ? id.hashCode() : 31;
     }
 }

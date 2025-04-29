@@ -19,14 +19,15 @@ import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 
 @Entity
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Table(name = "propiedad")
-
 public class PropiedadVO {
     
     @Id
@@ -35,6 +36,8 @@ public class PropiedadVO {
     
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "usuario_id", nullable = false)
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude // Excluye la propiedad propietario de los métodos equals y hashCode
     private UsuarioVO propietario;
     
     @Column(length = 100, nullable = false)
@@ -79,8 +82,10 @@ public class PropiedadVO {
     @Column(name = "fecha_creacion", nullable = false)
     private LocalDateTime fechaCreacion;
     
-    // Relación con las fotos 
+    // Relación con las fotos - se excluye para evitar recursión en hashCode y equals
     @OneToMany(mappedBy = "propiedad", fetch = FetchType.LAZY)
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     private Set<FotoVO> fotos = new HashSet<>();
     
     // Método para obtener la foto principal

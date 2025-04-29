@@ -1,4 +1,3 @@
-// PropiedadDTO.java
 package com.example.demo.propiedad.model;
 
 import java.math.BigDecimal;
@@ -23,7 +22,7 @@ public class PropiedadDTO {
     private Integer banos;
     private String fotoPrincipal;
     
-    // Constructor para convertir desde el VO
+    // Constructor modificado para evitar problemas de concurrencia
     public PropiedadDTO(PropiedadVO propiedad) {
         this.id = propiedad.getId();
         this.titulo = propiedad.getTitulo();
@@ -34,6 +33,8 @@ public class PropiedadDTO {
         this.capacidad = propiedad.getCapacidad();
         this.dormitorios = propiedad.getDormitorios();
         this.banos = propiedad.getBanos();
+        
+        // Llamada al método getFotoPrincipal optimizado
         this.fotoPrincipal = propiedad.getFotoPrincipal();
     }
 }

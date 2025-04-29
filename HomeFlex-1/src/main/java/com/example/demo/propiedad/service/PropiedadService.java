@@ -477,20 +477,53 @@ public class PropiedadService {
      * Obtiene propiedades destacadas
      */
     public List<PropiedadDTO> obtenerPropiedadesDestacadas() {
-        Pageable pageable = PageRequest.of(0, 6, Sort.by("fechaCreacion").descending());
-        Page<PropiedadVO> propiedades = propiedadRepository.findByActivoTrue(pageable);
-        
-        return propiedades.getContent().stream()
-                .map(PropiedadDTO::new)
-                .collect(Collectors.toList());
+        try {
+            // Utilizar la consulta optimizada que carga las fotos en la misma consulta
+            Pageable pageable = PageRequest.of(0, 6, Sort.by("fechaCreacion").descending());
+            Page<PropiedadVO> propiedadesPage = propiedadRepository.findByActivoTrueWithFotos(pageable);
+            
+            List<PropiedadDTO> propiedadesDTOs = new ArrayList<>();
+            
+            // Convertir a DTOs de manera segura
+            for (PropiedadVO propiedad : propiedadesPage.getContent()) {
+                PropiedadDTO dto = new PropiedadDTO(propiedad);
+                propiedadesDTOs.add(dto);
+            }
+            
+            return propiedadesDTOs;
+        } catch (Exception e) {
+            // En caso de error, intentar con el método alternativo
+            System.err.println("Error al obtener propiedades destacadas: " + e.getMessage());
+            
+            // Plan B: obtener propiedades sin las fotos y establecer un placeholder
+            List<PropiedadVO> propiedades = propiedadRepository.findByActivoTrue();
+            List<PropiedadDTO> propiedadesDTOs = new ArrayList<>();
+            
+            for (PropiedadVO propiedad : propiedades.subList(0, Math.min(propiedades.size(), 6))) {
+                PropiedadDTO dto = new PropiedadDTO();
+                dto.setId(propiedad.getId());
+                dto.setTitulo(propiedad.getTitulo());
+                dto.setDescripcion(propiedad.getDescripcion());
+                dto.setPrecioDia(propiedad.getPrecioDia());
+                dto.setCiudad(propiedad.getCiudad());
+                dto.setPais(propiedad.getPais());
+                dto.setCapacidad(propiedad.getCapacidad());
+                dto.setDormitorios(propiedad.getDormitorios());
+                dto.setBanos(propiedad.getBanos());
+                dto.setFotoPrincipal("/images/property-placeholder.jpg"); // Placeholder por defecto
+                
+                propiedadesDTOs.add(dto);
+            }
+            
+            return propiedadesDTOs;
+        }
     }
+    
     
     /**
      * Busca propiedades cercanas según coordenadas
      */
     public List<PropiedadDTO> buscarPropiedadesCercanas(Double latitud, Double longitud, Integer distanciaKm) {
-        // Convertir distancia a grados aproximados
-        // 1 grado en latitud ≈ 111km, 1 grado en longitud varía con la latitud
         double distanciaLatitud = distanciaKm / 111.0;
         double distanciaLongitud = distanciaKm / (111.0 * Math.cos(Math.toRadians(latitud)));
         
