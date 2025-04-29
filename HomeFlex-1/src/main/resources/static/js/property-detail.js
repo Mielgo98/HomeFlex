@@ -7,16 +7,12 @@
  */
 
 document.addEventListener('DOMContentLoaded', () => {
-  // Inicializar la galería de imágenes
   initGallery();
   
-  // Configurar observador para cargar el mapa cuando sea visible
   setupMapObserver();
   
-  // Ajustar la visualización de la galería según la cantidad de imágenes
   adjustGalleryLayout();
   
-  // Alternativa para abrir Google Maps directamente (por si el popup falla)
   setupDirectGoogleMapsLink();
 });
 
@@ -106,8 +102,7 @@ function initMap() {
     const map = L.map('map', {
       center: [lat, lon],
       zoom: 15,
-      scrollWheelZoom: false, // Desactivar zoom con rueda para mejor UX
-      // Opciones de optimización
+      scrollWheelZoom: false, 
       updateWhenIdle: true,
       preferCanvas: true,
       renderer: L.canvas()

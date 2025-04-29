@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+    <!-- Fragmento para mostrar un mensaje en la conversación -->
+    <div th:fragment="message(msg)" 
+         th:class="${msg.type == 'bot' ? 'message bot-message' : 'message user-message'}">
+        <div class="message-content">
+            <!-- Avatar según el tipo de mensaje -->
+            <i th:class="${msg.type == 'bot' ? 'bi bi-robot message-avatar' : 'bi bi-person-fill message-avatar'}"></i>
+            
+            <!-- Contenido del mensaje -->
+            <div class="message-bubble" th:utext="${msg.content}">
+                Contenido del mensaje
+            </div>
+        </div>
+        
+        <!-- Hora del mensaje -->
+        <span class="message-time" th:text="${msg.time}">12:00</span>
+    </div>
+</body>
+</html>

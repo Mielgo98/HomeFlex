@@ -1,8 +1,0 @@
-<!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
-<body th:fragment="message(msg)">
-    <div th:classappend="${msg.sender == 'bot'} ? ' bot-message' : ' user-message'">
-        <span class="message">[[${msg.content}]]</span>
-    </div>
-</body>
-</html>

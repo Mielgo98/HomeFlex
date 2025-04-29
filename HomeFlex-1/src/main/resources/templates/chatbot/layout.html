@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
+<head th:fragment="head(title)">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${title}">HomeFlex - Asistente Virtual</title>
+    
+    <!-- Bootstrap CSS y otros estilos comunes -->
+    <link th:replace="fragments/head :: head(${title})">
+    
+    <!-- CSS específico para el chatbot -->
+    <link rel="stylesheet" th:href="@{/css/chatbot.css}">
+</head>
+<body th:fragment="layout(content)">
+    <!-- Header común -->
+    <header th:replace="fragments/header :: header"></header>
+
+    <!-- Contenido principal -->
+    <main class="container my-4" th:include="${content}">
+        <!-- El contenido se inserta aquí -->
+    </main>
+
+    <!-- Footer común -->
+    <footer th:replace="fragments/footer :: footer"></footer>
+    
+    <!-- Script específico para el chatbot -->
+    <script th:src="@{/js/chatbot.js}"></script>
+</body>
+</html>

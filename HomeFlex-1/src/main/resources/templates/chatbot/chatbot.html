@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
+<head th:replace="fragments/head :: head('HomeFlex - Asistente Virtual')">
+    <title>HomeFlex - Asistente Virtual</title>
+</head>
+<body>
+    <header th:replace="fragments/header :: header"></header>
+
+    <main class="container my-4">
+        <!-- Título y descripción del chatbot -->
+        <div class="chatbot-header mb-4">
+            <h1>Asistente Virtual HomeFlex</h1>
+            <p class="text-muted">Consulta información sobre propiedades, reservas y más. Estoy aquí para ayudarte.</p>
+        </div>
+
+        <div class="row">
+            <div class="col-lg-8 mx-auto">
+                <div class="card shadow">
+                    <div class="card-header bg-primary text-white d-flex align-items-center">
+                        <i class="bi bi-chat-dots-fill me-2"></i>
+                        <h5 class="mb-0">Conversación con el asistente</h5>
+                    </div>
+                    
+                    <!-- Área de chat -->
+                    <div class="card-body p-0">
+                        <div class="chat-container">
+                            <!-- Mensajes del chatbot -->
+                            <div id="chatMessages" class="chat-messages p-3">
+                                <!-- Mensaje de bienvenida inicial -->
+                                <div class="message bot-message">
+                                    <div class="message-content">
+                                        <i class="bi bi-robot message-avatar"></i>
+                                        <div class="message-bubble">
+                                            <p>¡Hola! Soy el asistente virtual de HomeFlex. Puedo ayudarte con información sobre propiedades, reservas y servicios de nuestra plataforma.</p>
+                                            <p>¿En qué puedo ayudarte hoy?</p>
+                                        </div>
+                                    </div>
+                                    <span class="message-time">Ahora</span>
+                                </div>
+                                
+                                <!-- Mensajes dinámicos cargados con JavaScript -->
+                                <div id="conversationHistory">
+                                </div>
+                            </div>
+                            
+                            <!-- Formulario de entrada -->
+                            <div class="chat-input-container p-3 border-top">
+                                <form id="chatForm" class="d-flex">
+                                    <input type="text" id="userInput" class="form-control" placeholder="Escribe tu mensaje aquí..." autocomplete="off">
+                                    <button type="submit" class="btn btn-primary ms-2">
+                                        <i class="bi bi-send"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Sugerencias de preguntas -->
+                <div class="question-suggestions mt-4">
+                    <h5>Sugerencias de preguntas:</h5>
+                    <div class="d-flex flex-wrap gap-2 mt-3">
+                        <button class="btn btn-outline-primary btn-sm suggestion-btn" data-question="¿Qué propiedades hay disponibles en Madrid?">¿Propiedades en Madrid?</button>
+                        <button class="btn btn-outline-primary btn-sm suggestion-btn" data-question="¿Cómo puedo reservar una propiedad?">¿Cómo reservar?</button>
+                        <button class="btn btn-outline-primary btn-sm suggestion-btn" data-question="¿Puedo cancelar una reserva?">Cancelar reserva</button>
+                        <button class="btn btn-outline-primary btn-sm suggestion-btn" data-question="¿Cuál es el precio medio por noche?">Precios medios</button>
+                        <button class="btn btn-outline-primary btn-sm suggestion-btn" data-question="¿Cómo publicar mi propiedad?">Publicar propiedad</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer th:replace="fragments/footer :: footer"></footer>
+
+    <script th:src="@{/js/chatbot.js}"></script>
+</body>
+</html>
