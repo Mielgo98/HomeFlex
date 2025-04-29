@@ -1,54 +1,261 @@
-// src/main/resources/static/js/property-detail.js
+/**
+ * JS para la página de detalle de propiedad
+ * Funcionalidades:
+ * 1. Inicialización de galería de imágenes con LightGallery
+ * 2. Carga diferida (lazy loading) del mapa para mejor rendimiento
+ * 3. Ajuste automático de la visualización de la galería según cantidad de imágenes
+ */
 
-// 1) Extrae toda la lógica de Leaflet a una función initMap
-function initMap() {
-  const latEl = document.getElementById('lat');
-  const lonEl = document.getElementById('lon');
-  if (!latEl || !lonEl) return;
+document.addEventListener('DOMContentLoaded', () => {
+  // Inicializar la galería de imágenes
+  initGallery();
+  
+  // Configurar observador para cargar el mapa cuando sea visible
+  setupMapObserver();
+  
+  // Ajustar la visualización de la galería según la cantidad de imágenes
+  adjustGalleryLayout();
+  
+  // Alternativa para abrir Google Maps directamente (por si el popup falla)
+  setupDirectGoogleMapsLink();
+});
 
-  const lat = parseFloat(latEl.value);
-  const lon = parseFloat(lonEl.value);
-  if (isNaN(lat) || isNaN(lon)) return;
-
-  // Inicializa el mapa
-  const map = L.map('map', {
-    center: [lat, lon],
-    zoom: 13,
-    // Opciones para reducir peticiones extra:
-    updateWhenIdle: true,
-    updateWhenZooming: false,
-    reuseTiles: true,
-    maxZoom: 16,
-    detectRetina: false
-  });
-
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '&copy; OpenStreetMap contributors',
-    // igual aquí puedes limitar a z entre 0 y 16
-    maxZoom: 16,
-    detectRetina: false
-  }).addTo(map);
-
-  L.marker([lat, lon]).addTo(map);
-
-  // fuerza re-cálculo al cargar totalmente
-  window.addEventListener('load', () => map.invalidateSize());
+/**
+ * Inicializa la galería de imágenes con LightGallery
+ */
+function initGallery() {
+  const galleryElement = document.getElementById('lightgallery');
+  
+  if (!galleryElement) return;
+  
+  // Opciones para LightGallery
+  const options = {
+    speed: 500,
+    download: false,
+    counter: true,
+    selector: '.gallery-item',
+    thumbnail: true,
+    animateThumb: true,
+    showThumbByDefault: false
+  };
+  
+  // Inicializar LightGallery si jQuery y lightGallery están disponibles
+  if (typeof $ !== 'undefined' && typeof lightGallery !== 'undefined') {
+    try {
+      lightGallery(galleryElement, options);
+      console.log('Galería inicializada correctamente');
+    } catch (error) {
+      console.error('Error al inicializar la galería:', error);
+    }
+  } else {
+    console.warn('LightGallery o jQuery no están disponibles');
+  }
 }
 
-// 2) Espera a que el DOM esté listo para montar el observer
-document.addEventListener('DOMContentLoaded', () => {
-  const mapEl = document.getElementById('map');
-  if (!mapEl) return;
-
-  // 3) Crea el observer que inicializará el mapa sólo cuando sea visible
-  const observer = new IntersectionObserver((entries, obs) => {
+/**
+ * Configura un Intersection Observer para cargar el mapa solo cuando sea visible
+ * Esto mejora el rendimiento de la página
+ */
+function setupMapObserver() {
+  const mapElement = document.getElementById('map');
+  
+  if (!mapElement) return;
+  
+  const mapObserver = new IntersectionObserver((entries) => {
+    // Si el mapa es visible en viewport, inicializarlo
     if (entries[0].isIntersecting) {
       initMap();
-      obs.unobserve(mapEl);
+      mapObserver.unobserve(mapElement);
     }
   }, {
-    rootMargin: '200px'  // adelanta un poco la carga
+    rootMargin: '200px' // Cargar el mapa cuando esté a 200px de ser visible
   });
+  
+  // Comenzar a observar el elemento del mapa
+  mapObserver.observe(mapElement);
+}
 
-  observer.observe(mapEl);
-});
+/**
+ * Inicializa el mapa con Leaflet
+ */
+function initMap() {
+  const mapElement = document.getElementById('map');
+  const latElement = document.getElementById('lat');
+  const lonElement = document.getElementById('lon');
+  
+  if (!mapElement || !latElement || !lonElement) {
+    console.warn('Elementos necesarios para el mapa no encontrados');
+    return;
+  }
+  
+  // Obtener coordenadas
+  let lat = parseFloat(latElement.value);
+  let lon = parseFloat(lonElement.value);
+  
+  // Validar que las coordenadas sean números válidos
+  if (isNaN(lat) || isNaN(lon)) {
+    console.warn('Coordenadas inválidas:', lat, lon);
+    
+    // Usar coordenadas predeterminadas (Madrid) si faltan o son inválidas
+    lat = 40.416775;
+    lon = -3.703790;
+  }
+  
+  try {
+    // Crear el mapa
+    const map = L.map('map', {
+      center: [lat, lon],
+      zoom: 15,
+      scrollWheelZoom: false, // Desactivar zoom con rueda para mejor UX
+      // Opciones de optimización
+      updateWhenIdle: true,
+      preferCanvas: true,
+      renderer: L.canvas()
+    });
+    
+    // Añadir tiles (capa base)
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+      maxZoom: 18,
+      minZoom: 3,
+      tileSize: 256
+    }).addTo(map);
+    
+    // Crear URL para Google Maps
+    const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${lat},${lon}`;
+    
+    // Añadir marcador con popup
+    const marker = L.marker([lat, lon]).addTo(map);
+    
+    // Configurar popup con contenido HTML
+    const popupContent = `
+      <div class="map-popup">
+        <strong>Ver ubicación exacta</strong>
+        <p>Abre esta ubicación en Google Maps</p>
+        <a href="${googleMapsUrl}" target="_blank" class="btn btn-sm btn-primary">
+          <i class="bi bi-google"></i> Abrir Google Maps
+        </a>
+      </div>
+    `;
+    
+    marker.bindPopup(popupContent);
+    
+    // Forzar apertura del popup al hacer clic en el marcador
+    marker.on('click', function() {
+      this.openPopup();
+    });
+    
+    // Añadir listener para habilitar scroll wheel zoom cuando el usuario haga clic en el mapa
+    map.on('click', function() {
+      if (!map.scrollWheelZoom.enabled()) {
+        map.scrollWheelZoom.enable();
+        // Mostrar mensaje de ayuda
+        const helpMsg = document.createElement('div');
+        helpMsg.className = 'map-control-message';
+        helpMsg.textContent = 'Zoom activado. Haz clic para desactivar.';
+        helpMsg.style.position = 'absolute';
+        helpMsg.style.bottom = '10px';
+        helpMsg.style.left = '10px';
+        helpMsg.style.backgroundColor = 'rgba(255,255,255,0.8)';
+        helpMsg.style.padding = '5px 10px';
+        helpMsg.style.borderRadius = '4px';
+        helpMsg.style.zIndex = 1000;
+        mapElement.appendChild(helpMsg);
+        
+        setTimeout(() => {
+          helpMsg.remove();
+        }, 3000);
+      } else {
+        map.scrollWheelZoom.disable();
+      }
+    });
+    
+    console.log('Mapa inicializado correctamente');
+  } catch (error) {
+    console.error('Error al inicializar el mapa:', error);
+  }
+}
+
+/**
+ * Ajusta la visualización de la galería según la cantidad de imágenes
+ */
+function adjustGalleryLayout() {
+  const gallery = document.querySelector('.property-gallery');
+  
+  if (!gallery) return;
+  
+  const galleryItems = gallery.querySelectorAll('.gallery-item');
+  const itemCount = galleryItems.length;
+  
+  // Si hay solo una imagen, mostrar en formato grande único
+  if (itemCount === 1) {
+    gallery.classList.add('single-image');
+  }
+  // Si hay menos de 5 imágenes, ajustar la cuadrícula
+  else if (itemCount < 5) {
+    gallery.classList.add('few-images');
+  }
+  
+  // Añadir botón "Ver más fotos" si hay más de 5 imágenes
+  if (itemCount > 5) {
+    const viewMoreBtn = document.createElement('div');
+    viewMoreBtn.className = 'view-more-photos';
+    viewMoreBtn.innerHTML = `<span>+${itemCount - 5} fotos más</span>`;
+    viewMoreBtn.style.position = 'absolute';
+    viewMoreBtn.style.bottom = '10px';
+    viewMoreBtn.style.right = '10px';
+    viewMoreBtn.style.backgroundColor = 'rgba(0,0,0,0.7)';
+    viewMoreBtn.style.color = 'white';
+    viewMoreBtn.style.padding = '5px 10px';
+    viewMoreBtn.style.borderRadius = '4px';
+    viewMoreBtn.style.cursor = 'pointer';
+    
+    if (galleryItems[5]) {
+      galleryItems[5].appendChild(viewMoreBtn);
+    }
+    
+    // Añadir evento para abrir la galería completa
+    viewMoreBtn.addEventListener('click', (e) => {
+      e.stopPropagation(); // Evitar que se abra la imagen específica
+      
+      // Simular clic en la primera imagen para abrir la galería
+      if (galleryItems[0]) {
+        galleryItems[0].click();
+      }
+    });
+  }
+}
+
+/**
+ * Configura un enlace directo a Google Maps como alternativa al popup
+ */
+function setupDirectGoogleMapsLink() {
+  const mapElement = document.getElementById('map');
+  const latElement = document.getElementById('lat');
+  const lonElement = document.getElementById('lon');
+  const mapInfoSection = document.querySelector('.property-map .mt-2');
+  
+  if (!mapElement || !latElement || !lonElement || !mapInfoSection) return;
+  
+  // Obtener coordenadas
+  const lat = parseFloat(latElement.value);
+  const lon = parseFloat(lonElement.value);
+  
+  // Validar coordenadas
+  if (isNaN(lat) || isNaN(lon)) return;
+  
+  // Crear URL para Google Maps
+  const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${lat},${lon}`;
+  
+  // Crear enlace alternativo
+  const directLink = document.createElement('p');
+  directLink.className = 'small text-primary ms-auto';
+  directLink.innerHTML = `
+    <a href="${googleMapsUrl}" target="_blank" class="text-decoration-none">
+      <i class="bi bi-box-arrow-up-right"></i> Abrir directamente en Google Maps
+    </a>
+  `;
+  
+  // Añadir enlace a la sección de información del mapa
+  mapInfoSection.appendChild(directLink);
+}

@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Búsqueda Avanzada - HomeFlex</title>
+    
+    <!-- CSS común -->
+    <link th:replace="fragments/head :: head('Búsqueda Avanzada - HomeFlex')">
+    
+    <!-- CSS específico para búsqueda avanzada -->
+    <style>
+        .search-container {
+            background-color: #f8f9fa;
+            border-radius: 0.5rem;
+            padding: 2rem;
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
+            margin-bottom: 2rem;
+        }
+        
+        .search-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            color: #333;
+            border-bottom: 1px solid #dee2e6;
+            padding-bottom: 0.5rem;
+        }
+        
+        .search-form .form-group {
+            margin-bottom: 1.5rem;
+        }
+        
+        .search-form label {
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+        
+        .form-range-values {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 0.5rem;
+            font-size: 0.9rem;
+            color: #6c757d;
+        }
+        
+        .popular-cities {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+        
+        .popular-cities .badge {
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .popular-cities .badge:hover {
+            background-color: #0d6efd !important;
+            color: white !important;
+        }
+        
+        .search-actions {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 2rem;
+        }
+        
+        .search-help {
+            background-color: #e8f0ff;
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            margin-top: 2rem;
+        }
+        
+        .search-help h3 {
+            font-size: 1.2rem;
+            color: #0d6efd;
+            margin-bottom: 1rem;
+        }
+        
+        .search-help ul {
+            padding-left: 1.5rem;
+        }
+        
+        .search-help li {
+            margin-bottom: 0.5rem;
+        }
+        
+        @media (max-width: 768px) {
+            .search-actions {
+                flex-direction: column;
+                gap: 1rem;
+            }
+            
+            .search-actions button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header común -->
+    <div th:replace="fragments/header :: header"></div>
+
+    <main class="container my-4">
+        <!-- Título y descripción -->
+        <header class="mb-4">
+            <h1>Búsqueda Avanzada</h1>
+            <p class="text-muted">Encuentra la propiedad perfecta con nuestros filtros avanzados.</p>
+        </header>
+
+        <!-- Formulario de búsqueda avanzada -->
+        <div class="search-container">
+            <h2 class="search-title">Filtros de búsqueda</h2>
+            
+            <form id="advancedSearchForm" th:action="@{/propiedades/resultados}" method="get" class="search-form">
+                <div class="row">
+                    <!-- Ubicación -->
+                    <div class="col-md-6 form-group">
+                        <label for="ciudad">Ciudad</label>
+                        <input type="text" id="ciudad" name="ciudad" class="form-control" placeholder="Ej: Madrid, Barcelona, Valencia...">
+                        
+                        <!-- Ciudades populares -->
+                        <div th:if="${not #lists.isEmpty(ciudadesPopulares)}" class="popular-cities">
+                            <small class="text-muted w-100 mb-1">Ciudades populares:</small>
+                            <span th:each="ciudad : ${ciudadesPopulares}" 
+                                  class="badge bg-light text-primary" 
+                                  th:text="${ciudad}"
+                                  onclick="document.getElementById('ciudad').value=this.textContent">
+                                Ciudad
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6 form-group">
+                        <label for="pais">País</label>
+                        <input type="text" id="pais" name="pais" class="form-control" placeholder="Ej: España, Francia, Italia...">
+                    </div>
+                    
+                    <!-- Características de la propiedad -->
+                    <div class="col-md-4 form-group">
+                        <label for="capacidad">Número de huéspedes</label>
+                        <select id="capacidad" name="capacidad" class="form-select">
+                            <option value="">Cualquier número</option>
+                            <option value="1">1 huésped</option>
+                            <option value="2">2 huéspedes</option>
+                            <option value="3">3 huéspedes</option>
+                            <option value="4">4 huéspedes</option>
+                            <option value="5">5 huéspedes</option>
+                            <option value="6">6 huéspedes</option>
+                            <option value="7">7 huéspedes</option>
+                            <option value="8">8+ huéspedes</option>
+                        </select>
+                    </div>
+                    
+                    <div class="col-md-4 form-group">
+                        <label for="dormitorios">Dormitorios</label>
+                        <select id="dormitorios" name="dormitorios" class="form-select">
+                            <option value="">Cualquier número</option>
+                            <option value="1">1 dormitorio</option>
+                            <option value="2">2 dormitorios</option>
+                            <option value="3">3 dormitorios</option>
+                            <option value="4">4 dormitorios</option>
+                            <option value="5">5+ dormitorios</option>
+                        </select>
+                    </div>
+                    
+                    <div class="col-md-4 form-group">
+                        <label for="banos">Baños</label>
+                        <select id="banos" name="banos" class="form-select">
+                            <option value="">Cualquier número</option>
+                            <option value="1">1 baño</option>
+                            <option value="2">2 baños</option>
+                            <option value="3">3 baños</option>
+                            <option value="4">4+ baños</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Rango de precios -->
+                    <div class="col-md-6 form-group">
+                        <label for="precioMin">Precio mínimo por noche (€)</label>
+                        <input type="number" id="precioMin" name="precioMin" class="form-control" min="0" step="10" placeholder="Ej: 50">
+                    </div>
+                    
+                    <div class="col-md-6 form-group">
+                        <label for="precioMax">Precio máximo por noche (€)</label>
+                        <input type="number" id="precioMax" name="precioMax" class="form-control" min="0" step="10" placeholder="Ej: 200">
+                    </div>
+                </div>
+                
+                <!-- Botones de acción -->
+                <div class="search-actions">
+                    <button type="button" id="clearBtn" class="btn btn-outline-secondary">
+                        <i class="bi bi-x-circle"></i> Limpiar filtros
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-search"></i> Buscar propiedades
+                    </button>
+                </div>
+            </form>
+            
+            <!-- Información de ayuda -->
+            <div class="search-help">
+                <h3><i class="bi bi-info-circle"></i> Consejos para tu búsqueda</h3>
+                <ul>
+                    <li>Deja un campo en blanco si no quieres filtrar por ese criterio.</li>
+                    <li>Usa el rango de precios para ajustar tu presupuesto.</li>
+                    <li>Para obtener más resultados, prueba con filtros menos restrictivos.</li>
+                    <li>Si buscas una ciudad específica, asegúrate de escribir su nombre correctamente.</li>
+                </ul>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer común -->
+    <div th:replace="fragments/footer :: footer"></div>
+    
+    <!-- Script para la página de búsqueda avanzada -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Botón para limpiar el formulario
+            const clearBtn = document.getElementById('clearBtn');
+            const searchForm = document.getElementById('advancedSearchForm');
+            
+            if (clearBtn && searchForm) {
+                clearBtn.addEventListener('click', () => {
+                    // Limpiar todos los campos del formulario
+                    searchForm.reset();
+                });
+            }
+            
+            // Actualizar el campo de ciudad al hacer clic en una ciudad popular
+            const popularCities = document.querySelectorAll('.popular-cities .badge');
+            const ciudadInput = document.getElementById('ciudad');
+            
+            if (popularCities.length > 0 && ciudadInput) {
+                popularCities.forEach(city => {
+                    city.addEventListener('click', () => {
+                        ciudadInput.value = city.textContent.trim();
+                        ciudadInput.focus();
+                    });
+                });
+            }
+        });
+    </script>
+</body>
+</html>

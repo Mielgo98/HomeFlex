@@ -1,41 +1,210 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" lang="es">
 <head>
-    <head th:replace="fragments/head :: head(${propiedad.titulo} + ' – Detalle')">
-    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-    <link rel="stylesheet" th:href="@{/css/property-detail.css}" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${propiedad.titulo} + ' – HomeFlex'">Detalle de Propiedad</title>
+    
+    <!-- CSS común -->
+    <link th:replace="fragments/head :: head(${propiedad.titulo} + ' – Detalle')">
+    
+    <!-- Leaflet para mapa -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    
+    <!-- LightGallery para galería de imágenes -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lightgallery@2.7.0/css/lightgallery.min.css">
+    
+    <!-- Estilos específicos para detalle de propiedad -->
+    <link rel="stylesheet" th:href="@{/css/property-detail.css}"/>
 </head>
 <body>
-  <!-- Header común -->
-  <div th:replace="fragments/header :: header"></div>
+    <!-- Header común -->
+    <div th:replace="fragments/header :: header"></div>
 
-  <main class="container">
-    <h1 th:text="${propiedad.titulo}">Título de la propiedad</h1>
+    <main class="container my-4">
+        <!-- Ruta de navegación -->
+        <nav aria-label="breadcrumb" class="mb-3">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a th:href="@{/}">Inicio</a></li>
+                <li class="breadcrumb-item"><a th:href="@{/propiedades}">Propiedades</a></li>
+                <li class="breadcrumb-item active" aria-current="page" th:text="${propiedad.titulo}">Título Propiedad</li>
+            </ol>
+        </nav>
 
-    <div class="gallery">
-      <img th:each="foto : ${propiedad.fotos}"
-           th:src="@{${foto.url}}"
-           th:alt="${propiedad.titulo}" />
-    </div>
+        <!-- Título y subtítulo -->
+        <header class="property-header mb-4">
+            <h1 th:text="${propiedad.titulo}" class="property-title">Título de la propiedad</h1>
+            <p class="property-location">
+                <i class="bi bi-geo-alt-fill"></i>
+                <span th:text="${propiedad.direccion + ', ' + propiedad.ciudad + ', ' + propiedad.pais}">Dirección, Ciudad, País</span>
+            </p>
+        </header>
 
-    <p th:text="${propiedad.descripcion}">Descripción detallada…</p>
-    <p class="price">
-      <strong>Precio:</strong>
-      <span th:text="${#numbers.formatDecimal(propiedad.precioDia, 1, 'COMMA', 2, 'POINT')} + ' €/día'">0 €/día</span>
-    </p>
+        <div class="row">
+            <!-- Columna principal: Galería y descripción -->
+            <div class="col-lg-8 mb-4">
+                <!-- Galería de imágenes -->
+                <div class="property-gallery mb-4" id="lightgallery">
+                    <div th:each="foto : ${propiedad.fotos}" class="gallery-item" th:attr="data-src=${foto.url}">
+                        <img th:src="${foto.url}" th:alt="${propiedad.titulo}" class="img-fluid rounded">
+                    </div>
+                    <!-- Fallback si no hay fotos -->
+                    <div th:if="${#lists.isEmpty(propiedad.fotos)}" class="gallery-item" data-src="/images/property-placeholder.jpg">
+                        <img src="/images/property-placeholder.jpg" th:alt="${propiedad.titulo}" class="img-fluid rounded">
+                    </div>
+                </div>
 
-    <h2>Ubicación</h2>
-    <input type="hidden" id="lat" th:value="${propiedad.latitud}" />
-    <input type="hidden" id="lon" th:value="${propiedad.longitud}" />
-    <div id="map"></div>
-  </main>
+                <!-- Sección de descripción -->
+                <section class="property-description mb-4">
+                    <h2>Descripción</h2>
+                    <div class="description-content" th:utext="${propiedad.descripcion}">
+                        Descripción detallada...
+                    </div>
+                </section>
 
-  <!-- Footer común -->
-  <div th:replace="fragments/footer :: footer"></div>
+                <!-- Mapa -->
+                <section class="property-map mb-4">
+                    <h2>Ubicación</h2>
+                    <input type="hidden" id="lat" th:value="${propiedad.latitud}"/>
+                    <input type="hidden" id="lon" th:value="${propiedad.longitud}"/>
+                    <div id="map" class="rounded"></div>
+                    <div class="mt-2 d-flex align-items-center flex-wrap">
+                        <div class="me-auto d-flex align-items-center flex-wrap">
+                            <p class="text-muted small me-3 mb-0">
+                                <i class="bi bi-info-circle"></i> La ubicación mostrada es aproximada
+                            </p>
+                            <p class="text-primary small mb-0">
+                                <i class="bi bi-cursor-fill"></i> Haz clic en el marcador para ver en Google Maps
+                            </p>
+                        </div>
+                        <a th:href="'https://www.google.com/maps/search/?api=1&query=' + ${propiedad.latitud} + ',' + ${propiedad.longitud}" 
+                           target="_blank" 
+                           class="btn btn-sm btn-outline-primary mt-2 mt-md-0">
+                            <i class="bi bi-google me-1"></i> Abrir en Google Maps
+                        </a>
+                    </div>
+                </section>
+            </div>
 
-  <!-- Leaflet JS desde CDN -->
-  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-  <!-- Tu JS de detalle -->
-  <script th:src="@{/js/property-detail.js}"></script>
+            <!-- Columna lateral: Precios, características y reserva -->
+            <div class="col-lg-4">
+                <!-- Tarjeta de precios -->
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-primary text-white">
+                        <h3 class="h5 mb-0">Información de precios</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="price-item">
+                            <span class="price-label">Por noche:</span>
+                            <span class="price-value" th:text="${#numbers.formatDecimal(propiedad.precioDia, 1, 'COMMA', 2, 'POINT')} + ' €'">100 €</span>
+                        </div>
+                        <div class="price-item" th:if="${propiedad.precioSemana != null}">
+                            <span class="price-label">Por semana:</span>
+                            <span class="price-value" th:text="${#numbers.formatDecimal(propiedad.precioSemana, 1, 'COMMA', 2, 'POINT')} + ' €'">600 €</span>
+                        </div>
+                        <hr>
+                        <a th:href="@{'/reservas/nueva/' + ${propiedad.id}}" class="btn btn-primary d-block">Reservar ahora</a>
+                    </div>
+                </div>
+
+                <!-- Características de la propiedad -->
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-light">
+                        <h3 class="h5 mb-0">Características</h3>
+                    </div>
+                    <div class="card-body">
+                        <ul class="property-features">
+                            <li>
+                                <i class="bi bi-people-fill"></i>
+                                <span th:text="${propiedad.capacidad + ' huéspedes'}">4 huéspedes</span>
+                            </li>
+                            <li>
+                                <i class="bi bi-house-door-fill"></i>
+                                <span th:text="${propiedad.dormitorios + ' dormitorios'}">2 dormitorios</span>
+                            </li>
+                            <li>
+                                <i class="bi bi-droplet-fill"></i>
+                                <span th:text="${propiedad.banos + ' baños'}">1 baño</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Información del propietario -->
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-light">
+                        <h3 class="h5 mb-0">Anfitrión</h3>
+                    </div>
+                    <div class="card-body host-info">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="host-avatar me-3">
+                                <img th:if="${propiedad.propietario.fotoPerfil}" th:src="${propiedad.propietario.fotoPerfil}" alt="Foto de perfil" class="rounded-circle">
+                                <img th:unless="${propiedad.propietario.fotoPerfil}" src="/images/default-avatar.png" alt="Foto de perfil" class="rounded-circle">
+                            </div>
+                            <div>
+                                <h4 class="h6 mb-1" th:text="${propiedad.propietario.nombre + ' ' + propiedad.propietario.apellidos}">Nombre del propietario</h4>
+                                <p class="text-muted small mb-0">
+                                    <i class="bi bi-star-fill text-warning"></i> Valoración media: 4.5/5
+                                </p>
+                            </div>
+                        </div>
+                        <a href="#" class="btn btn-outline-primary btn-sm d-block">Contactar</a>
+                    </div>
+                </div>
+
+                <!-- Sección de disponibilidad (simplificada) -->
+                <div class="card shadow-sm">
+                    <div class="card-header bg-light">
+                        <h3 class="h5 mb-0">Disponibilidad</h3>
+                    </div>
+                    <div class="card-body">
+                        <p class="mb-0">Para consultar la disponibilidad, inicia el proceso de reserva.</p>
+                        <a th:href="@{'/reservas/nueva/' + ${propiedad.id}}" class="btn btn-outline-primary btn-sm mt-2 d-block">Ver calendario</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Valoraciones (opcional) -->
+        <section class="property-reviews mt-4">
+            <h2>Valoraciones</h2>
+            <!-- Si hay valoraciones, mostrarlas -->
+            <div th:if="${not #lists.isEmpty(valoraciones)}" class="reviews-container">
+                <!-- Contenido de valoraciones -->
+            </div>
+            <!-- Si no hay valoraciones -->
+            <div th:if="${#lists.isEmpty(valoraciones)}" class="alert alert-info">
+                <p class="mb-0">Esta propiedad aún no tiene valoraciones.</p>
+            </div>
+            <!-- Enlace para valorar (solo si el usuario ha estado alojado) -->
+            <div class="mt-3">
+                <a th:href="@{'/valoraciones/nueva/' + ${propiedad.id}}" class="btn btn-outline-primary">Escribir una valoración</a>
+            </div>
+        </section>
+
+        <!-- Propiedades similares (opcional) -->
+        <section class="similar-properties mt-5">
+            <h2>Propiedades similares</h2>
+            <div class="row">
+                <!-- Aquí irían las propiedades similares -->
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer común -->
+    <div th:replace="fragments/footer :: footer"></div>
+
+    <!-- Scripts -->
+    <!-- jQuery (requerido para LightGallery) -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    
+    <!-- LightGallery para galería de imágenes -->
+    <script src="https://cdn.jsdelivr.net/npm/lightgallery@2.7.0/lightgallery.min.js"></script>
+    
+    <!-- Leaflet JS para mapa -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    
+    <!-- Script personalizado para detalle de propiedad -->
+    <script th:src="@{/js/property-detail.js}"></script>
 </body>
 </html>
