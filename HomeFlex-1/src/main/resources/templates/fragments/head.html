@@ -1,0 +1,16 @@
+<html xmlns:th="http://www.thymeleaf.org">
+  <head th:fragment="head(pageTitle)">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title th:text="${pageTitle}">HomeFlex</title>
+
+    <!-- estilos -->
+    <link rel="stylesheet" th:href="@{/css/base.css}" />
+    <link rel="stylesheet" th:href="@{/css/header.css}" />
+    <link rel="stylesheet" th:href="@{/css/card.css}" />
+
+    <!-- scripts globales -->
+    <script th:src="@{/js/main.js}" defer></script>
+    <script th:src="@{/js/search.js}" defer></script>
+  </head>
+</html>

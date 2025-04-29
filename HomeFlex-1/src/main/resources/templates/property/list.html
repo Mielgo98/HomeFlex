@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+  <head th:replace="fragments/head :: head(~{::title='Propiedades'})"></head>
+  <body>
+    <header th:replace="fragments/header :: header"></header>
+    <main class="container">
+      <section class="search-bar">
+        <form id="searchForm" th:action="@{/properties}" method="get">
+          <input type="text" name="q" placeholder="Buscar ciudad..." />
+          <input type="date" name="checkIn" required />
+          <input type="date" name="checkOut" required />
+          <button type="submit">Buscar</button>
+        </form>
+      </section>
+      <section class="property-grid">
+        <div class="grid">
+          <div th:each="prop : ${properties}" class="card">
+            <img th:src="@{${prop.photoUrl}}" alt="Foto" />
+            <div class="card-body">
+              <h3 th:text="${prop.title}"></h3>
+              <p th:text="${prop.description}"></p>
+              <a th:href="@{'/property/' + ${prop.id}}">Ver detalle</a>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+    <footer th:replace="fragments/footer :: footer"></footer>
+    <script th:src="@{/js/main.js}"></script>
+    <script th:src="@{/js/search.js}"></script>
+  </body>
+</html>
