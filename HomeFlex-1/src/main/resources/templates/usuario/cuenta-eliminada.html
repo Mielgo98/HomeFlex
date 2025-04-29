@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
+<head th:replace="~{fragments/head :: head('Cuenta eliminada')}"></head>
+<body>
+  <header th:replace="~{fragments/header :: header}"></header>
+  <main class="container mt-5 text-center">
+    <div class="alert alert-success">
+      Tu cuenta ha sido eliminada correctamente. ¡Hasta pronto!
+    </div>
+    <a th:href="@{/}" class="btn btn-primary">Volver al inicio</a>
+  </main>
+  <footer th:replace="~{fragments/footer :: footer}"></footer>
+</body>
+</html>

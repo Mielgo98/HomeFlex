@@ -265,4 +265,28 @@ public void enviarEmailCuentaEliminada(String destinatario, String nombre) throw
 		       
 		       System.out.println("Email de notificación de respuesta a valoración enviado a: " + emailUsuario);
 		   }
+		   
+		   /**
+		     * Envía un correo notificando el cambio de contraseña y con enlace al login.
+		     */
+		    public void sendPasswordChangeEmail(UsuarioVO usuario) throws Exception {
+		        // Preparar el contexto Thymeleaf
+		        Context ctx = new Context();
+		        ctx.setVariable("nombre", usuario.getNombre());
+		        ctx.setVariable("loginUrl", "http://localhost:8080/login");
+		        ctx.setVariable("soporteUrl", "http://localhost:8080/soporte");
+		        
+		        // Generar el HTML a partir de la plantilla
+		        String htmlBody = templateEngine.process("emails/password-change", ctx);
+		        
+		        // Construir mensaje MIME
+		        MimeMessage mimeMsg = mailSender.createMimeMessage();
+		        MimeMessageHelper helper = new MimeMessageHelper(mimeMsg, "UTF-8");
+		        helper.setTo(usuario.getEmail());
+		        helper.setSubject("Tu contraseña en HomeFlex ha sido cambiada");
+		        helper.setText(htmlBody, true);  // true = contenido HTML
+		        
+		        // Envío
+		        mailSender.send(mimeMsg);
+		    }
 }

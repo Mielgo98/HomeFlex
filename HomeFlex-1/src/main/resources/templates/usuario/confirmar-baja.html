@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
+<head th:replace="~{fragments/head :: head('Confirmar baja')}"></head>
+<body>
+  <header th:replace="~{fragments/header :: header}"></header>
+  <main class="container mt-5">
+    <div class="card">
+      <div class="card-header bg-danger text-white">
+        <h5>Dar de baja la cuenta</h5>
+      </div>
+      <div class="card-body">
+        <div th:if="${mensajeError}" class="alert alert-danger" th:text="${mensajeError}"></div>
+        <form th:action="@{/perfil/baja-usuario}"
+              th:object="${bajaUsuarioDTO}"
+              method="post">
+          <div class="mb-3">
+            <label for="password" class="form-label">Contraseña</label>
+            <input type="password" id="password"
+                   th:field="*{password}"
+                   class="form-control"
+                   th:classappend="${#fields.hasErrors('password')}? 'is-invalid'">
+            <div class="invalid-feedback" th:errors="*{password}"></div>
+          </div>
+          <div class="form-check mb-3">
+            <input class="form-check-input" type="checkbox" id="confirmacion"
+                   th:field="*{confirmacion}">
+            <label class="form-check-label" for="confirmacion">
+              Sí, quiero dar de baja mi cuenta
+            </label>
+            <div class="text-danger" th:errors="*{confirmacion}"></div>
+          </div>
+          <button type="submit" class="btn btn-danger">
+            Confirmar baja
+          </button>
+          <a th:href="@{/perfil}" class="btn btn-secondary">Cancelar</a>
+        </form>
+      </div>
+    </div>
+  </main>
+  <footer th:replace="~{fragments/footer :: footer}"></footer>
+</body>
+</html>
