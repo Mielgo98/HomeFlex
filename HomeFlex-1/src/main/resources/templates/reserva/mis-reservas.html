@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" lang="es">
 <head th:replace="~{fragments/head :: head('Mis Reservas - HomeFlex')}">
-<link rel="stylesheet" th:href="@{/css/reserva.css}" />
+    <link rel="stylesheet" th:href="@{/css/reserva.css}" />
     <title>Mis Reservas - HomeFlex</title>
 </head>
 <body>
@@ -65,13 +65,17 @@
                                 <div class="card-body">
                                     <div class="d-flex justify-content-between">
                                         <h5 class="card-title" th:text="${reserva.tituloPropiedad}">Título de la propiedad</h5>
+                                        <!-- Badge con comparación segura usando equals() -->
                                         <span class="badge"
                                               th:classappend="${
-                                                  reserva.estado == T(com.example.demo.reserva.model.EstadoReserva).SOLICITADA ? 'bg-warning' :
-                                                  reserva.estado == T(com.example.demo.reserva.model.EstadoReserva).PENDIENTE_PAGO ? 'bg-info' :
-                                                  reserva.estado == T(com.example.demo.reserva.model.EstadoReserva).PAGO_VERIFICADO ? 'bg-primary' :
-                                                  reserva.estado == T(com.example.demo.reserva.model.EstadoReserva).CONFIRMADA ? 'bg-success' :
-                                                  'bg-danger'
+                                                  reserva.estado != null ?
+                                                    (T(com.example.demo.reserva.model.EstadoReserva).SOLICITADA.equals(reserva.estado) ? 'bg-warning' :
+                                                     T(com.example.demo.reserva.model.EstadoReserva).PENDIENTE_PAGO.equals(reserva.estado) ? 'bg-info' :
+                                                     T(com.example.demo.reserva.model.EstadoReserva).PAGO_VERIFICADO.equals(reserva.estado) ? 'bg-primary' :
+                                                     T(com.example.demo.reserva.model.EstadoReserva).CONFIRMADA.equals(reserva.estado) ? 'bg-success' :
+                                                     'bg-danger'
+                                                    )
+                                                  : 'bg-secondary'
                                               }"
                                               th:text="${reserva.estado}">Estado</span>
                                     </div>
@@ -133,7 +137,7 @@
                             <span aria-hidden="true">&laquo;</span>
                         </a>
                     </li>
-                    <li class="page-item" th:each="i:${#numbers.sequence(0,totalPaginas-1)}" th:classappend="${i==paginaActual?'active':''}">
+                    <li class="page-item" th:each="i : ${#numbers.sequence(0,totalPaginas-1)}" th:classappend="${i==paginaActual?'active':''}">
                         <a class="page-link" th:href="@{/reservas/mis-reservas(pagina=${i},size=${reservas.size},estado=${estado},busqueda=${busqueda})}" th:text="${i+1}"></a>
                     </li>
                     <li class="page-item" th:classappend="${paginaActual+1>=totalPaginas?'disabled':''}">
@@ -148,6 +152,5 @@
 
     <footer th:replace="~{fragments/footer :: footer}"></footer>
     <script th:src="@{/js/reserva.js}" defer></script>
-    
 </body>
 </html>

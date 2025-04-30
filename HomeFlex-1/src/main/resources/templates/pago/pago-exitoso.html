@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+  <head th:replace="fragments/head :: head('Pago Exitoso')"></head>
+  <body>
+    <div th:replace="fragments/header :: header"></div>
+
+    <main class="container">
+      <h1>¡Pago Realizado con Éxito!</h1>
+
+      <p>ID de Sesión: <strong th:text="${pago.sessionId}">sess_...</strong></p>
+      <p>Reserva ID: <strong th:text="${reserva.id}">123</strong></p>
+      <p>Monto: <strong th:text="${pago.monto}"></strong> <span th:text="${pago.moneda}"></span></p>
+      <p>Estado: <strong th:text="${pago.estado}"></strong></p>
+
+      <a th:href="@{/reservas/mis-reservas}" class="btn btn-success mt-3">
+        Volver a Mis Reservas
+      </a>
+    </main>
+
+    <div th:replace="fragments/footer :: footer"></div>
+  </body>
+</html>

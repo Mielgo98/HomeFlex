@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
+<head th:replace="~{fragments/head :: head('Reservas Recibidas - HomeFlex')}">
+  <link rel="stylesheet" th:href="@{/css/reserva.css}" />
+</head>
+<body>
+  <header th:replace="~{fragments/header :: header}"></header>
+
+  <main class="container my-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h1><i class="bi bi-calendar-check me-2"></i>Reservas</h1>
+    </div>
+
+    <div class="card mb-4 p-3">
+      <div class="row g-3">
+        <div class="col-md-4">
+          <select id="filtroEstado" class="form-select">
+            <option value="">Todos</option>
+            <option value="SOLICITADA">Solicitadas</option>
+            <option value="PENDIENTE_PAGO">Pendientes pago</option>
+            <option value="CONFIRMADA">Confirmadas</option>
+            <option value="CANCELADA">Canceladas</option>
+          </select>
+        </div>
+        <div class="col-md-4">
+          <input type="text" id="busquedaRes" class="form-control" placeholder="Buscar…">
+        </div>
+        <div class="col-md-2">
+          <button id="btnFiltrarRes" class="btn btn-primary w-100">
+            <i class="bi bi-filter me-1"></i> Filtrar
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div id="reservasContainer" class="list-group">
+      <!-- inyecta aquí -->
+    </div>
+
+    <nav id="paginacionRes" class="mt-4"></nav>
+  </main>
+
+  <footer th:replace="~{fragments/footer :: footer}"></footer>
+  <script th:src="@{/js/propietario-reservas.js}" defer></script>
+</body>
+</html>

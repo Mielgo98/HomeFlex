@@ -1,12 +1,17 @@
 package com.example.demo.pago.service;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import com.example.demo.pago.model.PagoVO;
+import com.example.demo.pago.repository.PagoRepository;
+import com.example.demo.pago.model.PagoDTO;
 import com.stripe.exception.StripeException;
 import com.stripe.model.checkout.Session;
 import com.stripe.param.checkout.SessionCreateParams;
@@ -29,6 +34,9 @@ public class PagoService {
     @Value("${pago.moneda.defecto:EUR}")
     private String defaultCurrency;
 
+    @Autowired
+    private PagoRepository pagoRepository;
+    
     public Session crearSesionPago(PagoVO pago) throws StripeException {
         com.stripe.Stripe.apiKey = apiKey;
 
@@ -66,4 +74,11 @@ public class PagoService {
 
         return Session.create(params);
     }
+    
+    public List<PagoDTO> obtenerPorReserva(Long reservaId) {
+        return pagoRepository.findAllByReservaId(reservaId).stream()
+                             .map(PagoDTO::from)   
+                             .collect(Collectors.toList());
+    }
+
 }

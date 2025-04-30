@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+  <head th:replace="fragments/head :: head('Historial de Pagos')"></head>
+  <body>
+    <div th:replace="fragments/header :: header"></div>
+
+    <main class="container">
+      <h1>Pagos de la Reserva <span th:text="${reserva.id}"></span></h1>
+
+      <table class="table">
+        <thead>
+          <tr>
+            <th>ID Pago</th>
+            <th>Monto</th>
+            <th>Moneda</th>
+            <th>Estado</th>
+            <th>Fecha</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr th:each="p : ${pagos}">
+            <td th:text="${p.id}"></td>
+            <td th:text="${p.monto}"></td>
+            <td th:text="${p.moneda}"></td>
+            <td th:text="${p.estado}"></td>
+            <td th:text="${#dates.format(p.fechaCreacion, 'dd/MM/yyyy HH:mm')}"></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <a th:href="@{/reservas/mis-reservas}" class="btn btn-secondary mt-3">
+        Volver a Mis Reservas
+      </a>
+    </main>
+
+    <div th:replace="fragments/footer :: footer"></div>
+  </body>
+</html>

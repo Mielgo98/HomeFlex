@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+  <head th:replace="fragments/head :: head('Pago Fallido')"></head>
+  <body>
+    <div th:replace="fragments/header :: header"></div>
+
+    <main class="container">
+      <h1>Lo Sentimos, el Pago Falló</h1>
+
+      <p>ID de Sesión: <strong th:text="${pago.sessionId}">sess_...</strong></p>
+      <p>Reserva ID: <strong th:text="${reserva.id}">123</strong></p>
+      <p>Error: <span th:text="${errorPago}">Detalle del error</span></p>
+
+      <a th:href="@{/pago/formulario(reservaId=${reserva.id},idSesion=${pago.sessionId})}"
+         class="btn btn-warning mt-3">
+        Reintentar Pago
+      </a>
+      <a th:href="@{/reservas/mis-reservas}" class="btn btn-secondary mt-3">
+        Volver a Mis Reservas
+      </a>
+    </main>
+
+    <div th:replace="fragments/footer :: footer"></div>
+  </body>
+</html>

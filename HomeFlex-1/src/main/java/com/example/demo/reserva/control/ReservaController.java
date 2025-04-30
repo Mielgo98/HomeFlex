@@ -1,358 +1,137 @@
 package com.example.demo.reserva.control;
 
 import java.security.Principal;
-import java.time.LocalDate;
+import java.util.List;
+
+import javax.validation.Valid;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
+import org.springframework.data.crossstore.ChangeSetPersister.NotFoundException;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import com.example.demo.pago.model.PagoDTO;
+import com.example.demo.pago.service.PagoService;
+import com.example.demo.propiedad.model.PropiedadDTO;
 import com.example.demo.propiedad.service.PropiedadService;
-import com.example.demo.reserva.model.EstadoReserva;
 import com.example.demo.reserva.model.ReservaDTO;
 import com.example.demo.reserva.model.SolicitudReservaDTO;
 import com.example.demo.reserva.service.ReservaService;
-
-import jakarta.validation.Valid;
 
 @Controller
 @RequestMapping("/reservas")
 public class ReservaController {
 
     @Autowired
-    private ReservaService reservaService;
-    
-    @Autowired
     private PropiedadService propiedadService;
-    
-    /**
-     * Muestra las reservas del usuario (inquilino)
-     */
-    @GetMapping("/mis-reservas")
-    public String mostrarMisReservas(
-            @RequestParam(defaultValue = "0") int pagina,
-            @RequestParam(defaultValue = "10") int size,
-            @RequestParam(required = false) String estado,
-            @RequestParam(required = false) String busqueda,
-            Model model,
-            Principal principal) {
-        
-        if (principal == null) {
-            return "redirect:/login";
-        }
-        
-        // Configurar paginación
-        Pageable pageable = PageRequest.of(pagina, size, Sort.by("fechaInicio").descending());
-        
-        // Convertir estado string a enum si está presente
-        EstadoReserva estadoEnum = null;
-        if (estado != null && !estado.isEmpty()) {
-            try {
-                estadoEnum = EstadoReserva.valueOf(estado);
-            } catch (IllegalArgumentException e) {
-                // Ignorar estado inválido
-            }
-        }
-        
-        // Obtener reservas filtradas
-        Page<ReservaDTO> reservas = reservaService.filtrarReservasInquilino(
-                principal.getName(), estadoEnum, busqueda, pageable);
-        
-        model.addAttribute("reservas", reservas);
-        model.addAttribute("paginaActual", pagina);
-        model.addAttribute("totalPaginas", reservas.getTotalPages());
-        model.addAttribute("estado", estado);
-        model.addAttribute("busqueda", busqueda);
-        
-        return "reserva/mis-reservas";
-    }
-    
-    /**
-     * Muestra las reservas de las propiedades del propietario
-     */
-    @GetMapping("/solicitudes")
-    public String mostrarSolicitudes(
-            @RequestParam(defaultValue = "0") int pagina,
-            @RequestParam(defaultValue = "10") int size,
-            @RequestParam(required = false) String estado,
-            @RequestParam(required = false) String busqueda,
-            Model model,
-            Principal principal) {
-        
-        if (principal == null) {
-            return "redirect:/login";
-        }
-        
-        // Configurar paginación
-        Pageable pageable = PageRequest.of(pagina, size, Sort.by("fechaSolicitud").descending());
-        
-        // Convertir estado string a enum si está presente
-        EstadoReserva estadoEnum = null;
-        if (estado != null && !estado.isEmpty()) {
-            try {
-                estadoEnum = EstadoReserva.valueOf(estado);
-            } catch (IllegalArgumentException e) {
 
-            }
-        }
-        
-        // Obtener reservas filtradas
-        Page<ReservaDTO> reservas = reservaService.filtrarReservasPropietario(
-                principal.getName(), estadoEnum, busqueda, pageable);
-        
-        model.addAttribute("reservas", reservas);
-        model.addAttribute("paginaActual", pagina);
-        model.addAttribute("totalPaginas", reservas.getTotalPages());
-        model.addAttribute("estado", estado);
-        model.addAttribute("busqueda", busqueda);
-        
-        return "reserva/solicitudes";
-    }
+    @Autowired
+    private ReservaService reservaService;
+
+    @Autowired
+    private PagoService pagoService;
     
     /**
-     * Muestra el detalle de una reserva
+     * Muestra el formulario para crear una nueva reserva de una propiedad dada
+     */
+    @GetMapping("/nueva/{propiedadId}")
+    public String nuevaReservaForm(@PathVariable Long propiedadId,
+                                   Model model,
+                                   Principal principal) {
+        if (principal == null) {
+            return "redirect:/login";
+        }
+        // Cargar datos de la propiedad
+        PropiedadDTO propiedad = propiedadService.obtenerPropiedadPorId(propiedadId);
+        model.addAttribute("propiedad", propiedad);
+
+        // DTO de solicitud vacío (bindear formulario)
+        SolicitudReservaDTO solicitudDTO = new SolicitudReservaDTO();
+        solicitudDTO.setPropiedadId(propiedadId);
+        model.addAttribute("solicitudDTO", solicitudDTO);
+
+        return "reserva/nueva-reserva";
+    }
+
+    /**
+     * Procesa el envío del formulario de nueva reserva
+     */
+    @PostMapping("/nueva")
+    public String crearReserva(@Valid @ModelAttribute("solicitudDTO") SolicitudReservaDTO solicitudDTO,
+                               BindingResult bindingResult,
+                               Principal principal,
+                               RedirectAttributes ra,
+                               Model model) {
+        if (principal == null) {
+            return "redirect:/login";
+        }
+        if (bindingResult.hasErrors()) {
+            // Volver a mostrar formulario con errores; recargar propiedad
+            PropiedadDTO propiedad = propiedadService
+                    .obtenerPropiedadPorId(solicitudDTO.getPropiedadId());
+            model.addAttribute("propiedad", propiedad);
+            return "reserva/nueva-reserva";
+        }
+
+        try {
+            // Llamamos al método que acepta SolicitudReservaDTO + username
+            ReservaDTO creada = reservaService
+                    .crearSolicitud(solicitudDTO, principal.getName());
+
+            ra.addFlashAttribute("mensajeExito",
+                    "Reserva creada correctamente (código: " + creada.getCodigoReserva() + ")");
+            return "redirect:/reservas/mis-reservas";
+
+        } catch (Exception e) {
+            // En caso de error, redirigir al formulario con mensaje
+            ra.addFlashAttribute("error", "Error al crear la reserva: " + e.getMessage());
+            return "redirect:/reservas/nueva/" + solicitudDTO.getPropiedadId();
+        }
+    }
+    /**
+     * Muestra el detalle de una reserva concreta, junto con sus pagos.
      */
     @GetMapping("/{id}")
-    public String verReserva(@PathVariable Long id, Model model, Principal principal) {
+    public String detalleReserva(@PathVariable Long id,
+                                 Model model,
+                                 Authentication auth,
+                                 RedirectAttributes ra) {
+       
+
+        // 2) Obtener la reserva validando que pertenece al usuario
+		ReservaDTO reserva = reservaService.obtenerReservaPorId(id);
+		model.addAttribute("reserva", reserva);
+
+		List<PagoDTO> pagos = pagoService.obtenerPorReserva(id);
+		model.addAttribute("pagos", pagos);
+
+       // 4) Determinar roles
+		boolean esInquilino   = auth.getAuthorities().stream()
+		    .anyMatch(a -> a.getAuthority().equals("ROLE_INQUILINO"));
+		boolean esPropietario = auth.getAuthorities().stream()
+		    .anyMatch(a -> a.getAuthority().equals("ROLE_PROPIETARIO"));
+		model.addAttribute("esInquilino",   esInquilino);
+		model.addAttribute("esPropietario", esPropietario);
+
+		// 5) Devolver la plantilla de detalle
+		return "reserva/detalle";
+    }
+
+    
+    /**
+     * Lista las reservas del usuario
+     */
+    @GetMapping("/mis-reservas")
+    public String listarMisReservas(Model model, Principal principal) {
         if (principal == null) {
             return "redirect:/login";
         }
-        
-        try {
-            ReservaDTO reserva = reservaService.obtenerReservaPorId(id);
-            
-            // Verificar que el usuario es el inquilino o el propietario
-            boolean esInquilino = reserva.getNombreUsuario().equals(principal.getName());
-            boolean esPropietario = reserva.getTituloPropiedad().equals(principal.getName());
-            
-            if (!esInquilino && !esPropietario) {
-                model.addAttribute("error", "No tienes permiso para ver esta reserva");
-                return "error";
-            }
-            
-            model.addAttribute("reserva", reserva);
-            model.addAttribute("esInquilino", esInquilino);
-            model.addAttribute("esPropietario", esPropietario);
-            
-            return "reserva/detalle";
-        } catch (Exception e) {
-            model.addAttribute("error", "Error al cargar la reserva: " + e.getMessage());
-            return "error";
-        }
-    }
-    
-    /**
-     * Procesa la solicitud de una nueva reserva
-     */
-    @PostMapping("/solicitar")
-    public String solicitarReserva(
-            @Valid @ModelAttribute("solicitudReserva") SolicitudReservaDTO solicitud,
-            BindingResult bindingResult,
-            Model model,
-            RedirectAttributes redirectAttributes,
-            Principal principal) {
-        
-        if (principal == null) {
-            return "redirect:/login";
-        }
-        
-        if (bindingResult.hasErrors()) {
-            model.addAttribute("error", "Por favor, complete correctamente todos los campos obligatorios");
-            model.addAttribute("propiedadId", solicitud.getPropiedadId());
-            return "propiedad/detalle";
-        }
-        
-        try {
-            // Verificar disponibilidad
-            boolean disponible = reservaService.verificarDisponibilidad(
-                    solicitud.getPropiedadId(), solicitud.getFechaInicio(), solicitud.getFechaFin());
-            
-            if (!disponible) {
-                redirectAttributes.addFlashAttribute("error", 
-                        "La propiedad no está disponible para las fechas seleccionadas");
-                return "redirect:/propiedades/" + solicitud.getPropiedadId();
-            }
-            
-            // Crear la solicitud
-            ReservaDTO reservaCreada = reservaService.crearSolicitud(solicitud, principal.getName());
-            
-            redirectAttributes.addFlashAttribute("mensaje", 
-                    "¡Solicitud de reserva enviada con éxito! Código: " + reservaCreada.getCodigoReserva());
-            return "redirect:/reservas/mis-reservas";
-            
-        } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("error", "Error al solicitar la reserva: " + e.getMessage());
-            return "redirect:/propiedades/" + solicitud.getPropiedadId();
-        }
-    }
-    
-    /**
-     * Aprueba una solicitud de reserva
-     */
-    @PostMapping("/{id}/aprobar")
-    public String aprobarSolicitud(
-            @PathVariable Long id,
-            RedirectAttributes redirectAttributes,
-            Principal principal) {
-        
-        if (principal == null) {
-            return "redirect:/login";
-        }
-        
-        try {
-            reservaService.aprobarSolicitud(id, principal.getName());
-            
-            redirectAttributes.addFlashAttribute("mensaje", "Solicitud aprobada correctamente");
-            return "redirect:/reservas/solicitudes";
-        } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("error", "Error al aprobar la solicitud: " + e.getMessage());
-            return "redirect:/reservas/" + id;
-        }
-    }
-    
-    /**
-     * Rechaza una solicitud de reserva
-     */
-    @PostMapping("/{id}/rechazar")
-    public String rechazarSolicitud(
-            @PathVariable Long id,
-            @RequestParam(required = false) String motivo,
-            RedirectAttributes redirectAttributes,
-            Principal principal) {
-        
-        if (principal == null) {
-            return "redirect:/login";
-        }
-        
-        try {
-            reservaService.rechazarSolicitud(id, principal.getName(), motivo);
-            
-            redirectAttributes.addFlashAttribute("mensaje", "Solicitud rechazada correctamente");
-            return "redirect:/reservas/solicitudes";
-        } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("error", "Error al rechazar la solicitud: " + e.getMessage());
-            return "redirect:/reservas/" + id;
-        }
-    }
-    
-    /**
-     * Registra el pago de una reserva
-     */
-    @PostMapping("/{id}/pagar")
-    public String registrarPago(
-            @PathVariable Long id,
-            RedirectAttributes redirectAttributes,
-            Principal principal) {
-        
-        if (principal == null) {
-            return "redirect:/login";
-        }
-        
-        try {
-            reservaService.registrarPago(id, principal.getName());
-            
-            redirectAttributes.addFlashAttribute("mensaje", "Pago registrado correctamente");
-            return "redirect:/reservas/mis-reservas";
-        } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("error", "Error al registrar el pago: " + e.getMessage());
-            return "redirect:/reservas/" + id;
-        }
-    }
-    
-    /**
-     * Confirma una reserva
-     */
-    @PostMapping("/{id}/confirmar")
-    public String confirmarReserva(
-            @PathVariable Long id,
-            RedirectAttributes redirectAttributes,
-            Principal principal) {
-        
-        if (principal == null) {
-            return "redirect:/login";
-        }
-        
-        try {
-            reservaService.confirmarReserva(id, principal.getName());
-            
-            redirectAttributes.addFlashAttribute("mensaje", "Reserva confirmada correctamente");
-            return "redirect:/reservas/solicitudes";
-        } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("error", "Error al confirmar la reserva: " + e.getMessage());
-            return "redirect:/reservas/" + id;
-        }
-    }
-    
-    /**
-     * Cancela una reserva
-     */
-    @PostMapping("/{id}/cancelar")
-    public String cancelarReserva(
-            @PathVariable Long id,
-            @RequestParam(required = false) String motivo,
-            RedirectAttributes redirectAttributes,
-            Principal principal) {
-        
-        if (principal == null) {
-            return "redirect:/login";
-        }
-        
-        try {
-            reservaService.cancelarReserva(id, principal.getName(), motivo);
-            
-            redirectAttributes.addFlashAttribute("mensaje", "Reserva cancelada correctamente");
-            
-            // Redireccionar según el rol
-            ReservaDTO reserva = reservaService.obtenerReservaPorId(id);
-            boolean esInquilino = reserva.getNombreUsuario().equals(principal.getName());
-            
-            if (esInquilino) {
-                return "redirect:/reservas/mis-reservas";
-            } else {
-                return "redirect:/reservas/solicitudes";
-            }
-        } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("error", "Error al cancelar la reserva: " + e.getMessage());
-            return "redirect:/reservas/" + id;
-        }
-    }
-    
-    /**
-     * Verificar disponibilidad (AJAX)
-     */
-    @GetMapping("/verificar-disponibilidad")
-    public String verificarDisponibilidad(
-            @RequestParam Long propiedadId,
-            @RequestParam String fechaInicio,
-            @RequestParam String fechaFin,
-            Model model) {
-        
-        try {
-            LocalDate inicio = LocalDate.parse(fechaInicio);
-            LocalDate fin = LocalDate.parse(fechaFin);
-            
-            boolean disponible = reservaService.verificarDisponibilidad(propiedadId, inicio, fin);
-            
-            model.addAttribute("disponible", disponible);
-            
-            return "reserva/fragmento-disponibilidad";
-        } catch (Exception e) {
-            model.addAttribute("error", e.getMessage());
-            model.addAttribute("disponible", false);
-            
-            return "reserva/fragmento-disponibilidad";
-        }
+        model.addAttribute("reservas",
+                reservaService.obtenerReservasUsuario(principal.getName()));
+        return "reserva/mis-reservas";
     }
 }
