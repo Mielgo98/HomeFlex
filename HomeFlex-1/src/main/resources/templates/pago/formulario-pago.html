@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
+<head th:replace="fragments/head :: head('HomeFlex - Realizar Pago')">
+    <title>HomeFlex - Realizar Pago</title>
+</head>
+<body>
+    <header th:replace="fragments/header :: header"></header>
+
+    <main class="container my-4">
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <div class="card shadow">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="card-title mb-0">
+                            <i class="bi bi-credit-card me-2"></i>Pago de Reserva
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <!-- Mensajes de alerta -->
+                        <div th:if="${error}" class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <span th:text="${error}"></span>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+
+                        <!-- Resumen de la reserva -->
+                        <div class="booking-summary mb-4">
+                            <h6 class="fw-bold border-bottom pb-2 mb-3">Detalles de la reserva</h6>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <p><strong>Propiedad:</strong> <span th:text="${reserva.tituloPropiedad}">Título propiedad</span></p>
+                                    <p><strong>Fechas:</strong> <span th:text="${#temporals.format(reserva.fechaInicio, 'dd/MM/yyyy')} + ' - ' + ${#temporals.format(reserva.fechaFin, 'dd/MM/yyyy')}">01/01/2025 - 05/01/2025</span></p>
+                                    <p><strong>Huéspedes:</strong> <span th:text="${reserva.numHuespedes}">2</span></p>
+                                </div>
+                                <div class="col-md-6">
+                                    <p><strong>Código de reserva:</strong> <span th:text="${reserva.codigoReserva}">HF-12345678</span></p>
+                                    <p><strong>Importe a pagar:</strong> <span class="text-primary fw-bold" th:text="${#numbers.formatDecimal(pago.monto, 1, 'COMMA', 2, 'POINT')} + ' €'">100,00 €</span></p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Formulario de pago -->
+                        <form id="paymentForm" th:action="@{/pago/procesar}" th:object="${pago}" method="post" novalidate>
+                            <input type="hidden" th:field="*{reservaId}" />
+                            <input type="hidden" th:field="*{monto}" />
+                            <input type="hidden" th:field="*{idSesion}" />
+                            <input type="hidden" th:field="*{moneda}" />
+
+                            <div class="payment-card bg-light p-4 rounded mb-4">
+                                <h6 class="fw-bold mb-3">Datos de pago</h6>
+                                
+                                <div class="mb-3">
+                                    <label for="numeroTarjeta" class="form-label required-field">Número de tarjeta</label>
+                                    <input type="text" class="form-control" id="numeroTarjeta" th:field="*{numeroTarjeta}" placeholder="1234 5678 9012 3456" required maxlength="19" autocomplete="cc-number">
+                                    <div class="invalid-feedback">Por favor, introduce un número de tarjeta válido.</div>
+                                    <div class="form-text text-muted">Para pruebas, usa cualquier número que cumpla el algoritmo Luhn. Por ejemplo: 4111 1111 1111 1111</div>
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="fechaExpiracion" class="form-label required-field">Fecha de expiración</label>
+                                        <input type="text" class="form-control" id="fechaExpiracion" th:field="*{fechaExpiracion}" placeholder="MM/YY" required maxlength="5" autocomplete="cc-exp">
+                                        <div class="invalid-feedback">Introduce una fecha válida en formato MM/YY.</div>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label for="cvv" class="form-label required-field">CVV</label>
+                                        <input type="text" class="form-control" id="cvv" th:field="*{cvv}" placeholder="123" required maxlength="4" autocomplete="cc-csc">
+                                        <div class="invalid-feedback">Introduce el código de seguridad.</div>
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="titular" class="form-label required-field">Titular de la tarjeta</label>
+                                    <input type="text" class="form-control" id="titular" th:field="*{titular}" placeholder="Nombre y apellidos del titular" required autocomplete="cc-name">
+                                    <div class="invalid-feedback">Introduce el nombre del titular de la tarjeta.</div>
+                                </div>
+
+                                <div class="payment-icons mt-3 text-center">
+                                    <i class="bi bi-credit-card mx-2 fs-3 text-primary"></i>
+                                    <i class="bi bi-credit-card-2-front mx-2 fs-3 text-primary"></i>
+                                    <i class="bi bi-credit-card-2-back mx-2 fs-3 text-primary"></i>
+                                </div>
+                            </div>
+
+                            <div class="alert alert-info">
+                                <div class="d-flex align-items-center">
+                                    <i class="bi bi-shield-lock fs-2 me-3"></i>
+                                    <div>
+                                        <strong>Pago seguro</strong>
+                                        <p class="mb-0">Esta es una simulación de pago. En un entorno real, utilizaríamos una pasarela de pago segura con cifrado SSL.</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+                                <a th:href="@{'/reservas/' + ${reserva.id}}" class="btn btn-secondary me-md-2">
+                                    <i class="bi bi-arrow-left me-1"></i> Cancelar
+                                </a>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="bi bi-lock-fill me-1"></i> Realizar pago seguro
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer th:replace="fragments/footer :: footer"></footer>
+    
+    <!-- Script para validación y formateo del formulario de pago -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('paymentForm');
+            const numeroTarjeta = document.getElementById('numeroTarjeta');
+            const fechaExpiracion = document.getElementById('fechaExpiracion');
+            const cvv = document.getElementById('cvv');
+            const titular = document.getElementById('titular');
+            
+            // Formatear número de tarjeta (añadir espacios cada 4 dígitos)
+            numeroTarjeta.addEventListener('input', function(e) {
+                let value = e.target.value.replace(/\s+/g, '').replace(/[^0-9]/gi, '');
+                let formattedValue = '';
+                
+                for (let i = 0; i < value.length; i++) {
+                    if (i > 0 && i % 4 === 0) {
+                        formattedValue += ' ';
+                    }
+                    formattedValue += value[i];
+                }
+                
+                e.target.value = formattedValue;
+            });
+            
+            // Formatear fecha de expiración (MM/YY)
+            fechaExpiracion.addEventListener('input', function(e) {
+                let value = e.target.value.replace(/[^0-9]/gi, '');
+                
+                if (value.length > 0) {
+                    if (value.length <= 2) {
+                        e.target.value = value;
+                    } else {
+                        e.target.value = value.substring(0, 2) + '/' + value.substring(2, 4);
+                    }
+                    
+                    // Validar mes (01-12)
+                    if (value.length >= 2) {
+                        let month = parseInt(value.substring(0, 2));
+                        if (month < 1 || month > 12) {
+                            fechaExpiracion.classList.add('is-invalid');
+                        } else {
+                            fechaExpiracion.classList.remove('is-invalid');
+                        }
+                    }
+                }
+            });
+            
+            // Permitir solo números en CVV
+            cvv.addEventListener('input', function(e) {
+                e.target.value = e.target.value.replace(/[^0-9]/gi, '');
+            });
+            
+            // Validar formulario antes de enviar
+            form.addEventListener('submit', function(e) {
+                let isValid = true;
+                
+                // Validar número de tarjeta (algoritmo Luhn)
+                if (!validarNumeroTarjeta(numeroTarjeta.value.replace(/\s+/g, ''))) {
+                    numeroTarjeta.classList.add('is-invalid');
+                    isValid = false;
+                } else {
+                    numeroTarjeta.classList.remove('is-invalid');
+                }
+                
+                // Validar fecha de expiración
+                if (!validarFechaExpiracion(fechaExpiracion.value)) {
+                    fechaExpiracion.classList.add('is-invalid');
+                    isValid = false;
+                } else {
+                    fechaExpiracion.classList.remove('is-invalid');
+                }
+                
+                // Validar CVV (3-4 dígitos)
+                if (!/^\d{3,4}$/.test(cvv.value)) {
+                    cvv.classList.add('is-invalid');
+                    isValid = false;
+                } else {
+                    cvv.classList.remove('is-invalid');
+                }
+                
+                // Validar titular
+                if (titular.value.trim().length < 3) {
+                    titular.classList.add('is-invalid');
+                    isValid = false;
+                } else {
+                    titular.classList.remove('is-invalid');
+                }
+                
+                if (!isValid) {
+                    e.preventDefault();
+                }
+            });
+            
+            // Función para validar número de tarjeta (algoritmo Luhn)
+            function validarNumeroTarjeta(numero) {
+                if (!/^\d{13,19}$/.test(numero)) return false;
+                
+                let sum = 0;
+                let shouldDouble = false;
+                
+                // Algoritmo de Luhn
+                for (let i = numero.length - 1; i >= 0; i--) {
+                    let digit = parseInt(numero.charAt(i));
+                    
+                    if (shouldDouble) {
+                        digit *= 2;
+                        if (digit > 9) digit -= 9;
+                    }
+                    
+                    sum += digit;
+                    shouldDouble = !shouldDouble;
+                }
+                
+                return (sum % 10) === 0;
+            }
+            
+            // Función para validar fecha de expiración
+            function validarFechaExpiracion(fecha) {
+                if (!/^\d{2}\/\d{2}$/.test(fecha)) return false;
+                
+                const parts = fecha.split('/');
+                const mes = parseInt(parts[0], 10);
+                const año = parseInt('20' + parts[1], 10);
+                
+                if (mes < 1 || mes > 12) return false;
+                
+                const ahora = new Date();
+                const currentYear = ahora.getFullYear();
+                const currentMonth = ahora.getMonth() + 1;
+                
+                // La tarjeta no puede estar caducada
+                if (año < currentYear || (año === currentYear && mes < currentMonth)) {
+                    return false;
+                }
+                
+                return true;
+            }
+        });
+    </script>
+</body>
+</html>

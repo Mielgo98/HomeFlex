@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
+<head th:replace="~{fragments/head :: head('Pago de Reserva - HomeFlex')}">
+    <title>Pago de Reserva - HomeFlex</title>
+</head>
+<body>
+    <header th:replace="~{fragments/header :: header}"></header>
+
+    <main class="container my-4">
+        <div class="row">
+            <div class="col-lg-6 mx-auto">
+                <h1 class="mb-4"><i class="bi bi-credit-card me-2"></i>Pago de Reserva</h1>
+
+                <!-- Resumen de la reserva -->
+                <div class="card mb-4">
+                    <div class="card-header fw-bold">Resumen de la Reserva</div>
+                    <div class="card-body">
+                        <p><i class="bi bi-house-door me-1"></i> <span th:text="${reserva.tituloPropiedad}">Título propiedad</span></p>
+                        <p><i class="bi bi-calendar-check me-1"></i> Entrada: <strong th:text="${#temporals.format(reserva.fechaInicio,'dd/MM/yyyy')}">01/01/2025</strong></p>
+                        <p><i class="bi bi-calendar-x me-1"></i> Salida: <strong th:text="${#temporals.format(reserva.fechaFin,'dd/MM/yyyy')}">05/01/2025</strong></p>
+                        <p><i class="bi bi-people-fill me-1"></i> Huéspedes: <strong th:text="${reserva.numHuespedes}">2</strong></p>
+                        <p class="mb-0"><i class="bi bi-cash-stack me-1"></i> Importe total: <strong th:text="${#numbers.formatDecimal(reserva.precioTotal,1,'COMMA',2,'POINT')} + ' €'">200,00 €</strong></p>
+                    </div>
+                </div>
+
+                <!-- Formulario de pago -->
+                <form th:action="@{/pago/procesar}" th:object="${pagoRequest}" method="post" class="card shadow-sm p-4">
+                    <input type="hidden" th:field="*{reservaId}" />
+                    <div class="mb-3" th:classappend="${#fields.hasErrors('metodoPago')}? 'has-error'
+                    : ''">
+                        <label for="metodoPago" class="form-label">Método de Pago</label>
+                        <select id="metodoPago" th:field="*{metodoPago}" class="form-select" required>
+                            <option th:value="" disabled>Selecciona un método</option>
+                            <option th:value="T(com.example.demo.pago.model.EstadoPago).TARJETA">Tarjeta de Crédito/Débito</option>
+                            <option th:value="T(com.example.demo.pago.model.EstadoPago).PAYPAL">PayPal</option>
+                            <option th:value="T(com.example.demo.pago.model.EstadoPago).TRANSFERENCIA">Transferencia Bancaria</option>
+                        </select>
+                        <div class="text-danger small" th:errors="*{metodoPago}"></div>
+                    </div>
+
+                    <!-- Datos de tarjeta -->
+                    <div th:if="${pagoRequest.metodoPago.name() == 'TARJETA'}">
+                        <div class="mb-3" th:classappend="${#fields.hasErrors('datosTarjeta.numeroTarjeta')}? 'has-error' : ''">
+                            <label for="numeroTarjeta" class="form-label">Número de Tarjeta</label>
+                            <input type="text" id="numeroTarjeta" th:field="*{datosTarjeta.numeroTarjeta}" placeholder="#### #### #### ####" maxlength="19" class="form-control" />
+                            <div class="text-danger small" th:errors="*{datosTarjeta.numeroTarjeta}"></div>
+                        </div>
+                        <div class="row">
+                            <div class="col mb-3" th:classappend="${#fields.hasErrors('datosTarjeta.expiracion')}? 'has-error' : ''">
+                                <label for="expiracion" class="form-label">Expiración (MM/AA)</label>
+                                <input type="text" id="expiracion" th:field="*{datosTarjeta.expiracion}" placeholder="MM/AA" maxlength="5" class="form-control" />
+                                <div class="text-danger small" th:errors="*{datosTarjeta.expiracion}"></div>
+                            </div>
+                            <div class="col mb-3" th:classappend="${#fields.hasErrors('datosTarjeta.cvv')}? 'has-error' : ''">
+                                <label for="cvv" class="form-label">CVV</label>
+                                <input type="text" id="cvv" th:field="*{datosTarjeta.cvv}" placeholder="123" maxlength="3" class="form-control" />
+                                <div class="text-danger small" th:errors="*{datosTarjeta.cvv}"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Instrucciones de transferencia -->
+                    <div class="mb-4" th:if="${pagoRequest.metodoPago.name() == 'TRANSFERENCIA'}">
+                        <label class="form-label">Instrucciones de Transferencia</label>
+                        <p class="small text-muted">Realiza la transferencia a la cuenta <strong>ES00 0000 0000 0000 0000</strong> antes de 24 horas.</p>
+                    </div>
+
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-success btn-lg">
+                            <i class="bi bi-credit-card-fill me-1"></i> Pagar <span th:text="${#numbers.formatDecimal(reserva.precioTotal,1,'COMMA',2,'POINT')} + ' €'"></span>
+                        </button>
+                    </div>
+                </form>
+
+                <div class="mt-3 text-center">
+                    <a th:href="@{/reservas/mis-reservas}" class="btn btn-link">Cancelar y volver</a>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer th:replace="~{fragments/footer :: footer}"></footer>
+    <script th:src="@{/js/pago-reserva.js}" defer></script>
+</body>
+</html>

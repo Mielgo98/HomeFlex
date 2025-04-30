@@ -104,7 +104,7 @@ public class ReservaController {
             try {
                 estadoEnum = EstadoReserva.valueOf(estado);
             } catch (IllegalArgumentException e) {
-                // Ignorar estado inválido
+
             }
         }
         

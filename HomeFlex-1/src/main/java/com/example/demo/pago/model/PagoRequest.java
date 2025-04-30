@@ -12,7 +12,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class PagoRequest {
-    private BigDecimal amount; //importe
+    private BigDecimal amount; // importe
     private String currency;
     private String paymentMethodId;
     private String description;
