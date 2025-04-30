@@ -1,0 +1,72 @@
+/* static/css/detalle-reserva.css */
+/* Estilos para la página de detalle de reserva */
+
+.booking-header {
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.booking-code {
+    font-size: 0.9rem;
+}
+
+.property-details img {
+    transition: transform 0.3s ease;
+}
+
+.property-details:hover img {
+    transform: scale(1.02);
+}
+
+.timeline-icon {
+    box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.2);
+}
+
+.reservation-history .list-group-item {
+    transition: background-color 0.2s ease;
+}
+
+.reservation-history .list-group-item:hover {
+    background-color: #f8f9fa;
+}
+
+.reservation-actions {
+    margin-top: 1.5rem;
+}
+
+/* Estilos específicos para impresión */
+@media print {
+    header, footer, .reservation-actions, .modal {
+        display: none !important;
+    }
+    
+    .card {
+        box-shadow: none !important;
+        border: 1px solid #dee2e6 !important;
+    }
+    
+    .card-header {
+        background-color: #f8f9fa !important;
+        color: #212529 !important;
+        border-bottom: 1px solid #dee2e6 !important;
+    }
+    
+    body {
+        padding: 0;
+        margin: 0;
+    }
+    
+    .container {
+        max-width: 100% !important;
+        width: 100% !important;
+    }
+    
+    .col-lg-8 {
+        max-width: 100% !important;
+        flex: 0 0 100% !important;
+    }
+    
+    a[href]:after {
+        content: none !important;
+    }
+}

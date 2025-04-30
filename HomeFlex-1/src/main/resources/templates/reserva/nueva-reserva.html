@@ -1,0 +1,207 @@
+<!-- templates/reserva/nueva-reserva.html -->
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
+<head th:replace="fragments/head :: head('Solicitar Reserva - HomeFlex')">
+    <title>Solicitar Reserva - HomeFlex</title>
+</head>
+<body>
+    <header th:replace="fragments/header :: header"></header>
+
+    <main class="container my-4">
+        <div class="row">
+            <!-- Información de la propiedad -->
+            <div class="col-lg-5 mb-4">
+                <div class="card shadow">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="card-title mb-0">Información de la propiedad</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="property-summary d-flex mb-3">
+                            <img th:src="${propiedad.fotoPrincipal}" class="img-thumbnail me-3" alt="Imagen de propiedad" style="width: 120px; height: 90px; object-fit: cover;">
+                            <div>
+                                <h5 th:text="${propiedad.titulo}">Título de la propiedad</h5>
+                                <p class="text-muted mb-1">
+                                    <i class="bi bi-geo-alt-fill"></i> 
+                                    <span th:text="${propiedad.ciudad + ', ' + propiedad.pais}">Ciudad, País</span>
+                                </p>
+                                <p class="mb-0">
+                                    <span class="badge bg-info me-1">
+                                        <i class="bi bi-people-fill"></i> 
+                                        <span th:text="${propiedad.capacidad + ' huéspedes'}">4 huéspedes</span>
+                                    </span>
+                                    <span class="badge bg-info me-1">
+                                        <i class="bi bi-house-door-fill"></i> 
+                                        <span th:text="${propiedad.dormitorios + ' dormitorios'}">2 dormitorios</span>
+                                    </span>
+                                    <span class="badge bg-info">
+                                        <i class="bi bi-droplet-fill"></i> 
+                                        <span th:text="${propiedad.banos + ' baños'}">1 baño</span>
+                                    </span>
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="price-info mb-3">
+                            <h6>Información de precios:</h6>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>Precio por noche:</span>
+                                <span class="fw-bold text-primary" th:text="${#numbers.formatDecimal(propiedad.precioDia, 1, 'COMMA', 2, 'POINT')} + ' €'">100.00 €</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2" th:if="${propiedad.precioSemana != null}">
+                                <span>Precio por semana:</span>
+                                <span class="fw-bold text-success" th:text="${#numbers.formatDecimal(propiedad.precioSemana, 1, 'COMMA', 2, 'POINT')} + ' €'">600.00 €</span>
+                            </div>
+                        </div>
+
+                        <div class="host-info border-top pt-3">
+                            <h6>Información del anfitrión:</h6>
+                            <div class="d-flex align-items-center">
+                                <img th:if="${propiedad.propietario.fotoPerfil}" th:src="${propiedad.propietario.fotoPerfil}" class="rounded-circle me-2" style="width: 40px; height: 40px; object-fit: cover;" alt="Foto de perfil">
+                                <img th:unless="${propiedad.propietario.fotoPerfil}" src="/images/default-avatar.png" class="rounded-circle me-2" style="width: 40px; height: 40px; object-fit: cover;" alt="Foto de perfil">
+                                <div>
+                                    <p class="mb-0 fw-bold" th:text="${propiedad.propietario.nombre + ' ' + propiedad.propietario.apellidos}">Nombre del propietario</p>
+                                    <small class="text-muted">Anfitrión desde <span th:text="${#temporals.format(propiedad.propietario.fechaRegistro, 'MMMM yyyy')}">Enero 2023</span></small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Formulario de reserva -->
+            <div class="col-lg-7">
+                <div class="card shadow">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="card-title mb-0">Solicitar Reserva</h5>
+                    </div>
+                    <div class="card-body">
+                        <!-- Mensajes de alerta -->
+                        <div th:if="${error}" class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <span th:text="${error}"></span>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+
+                        <form id="reservationForm" th:action="@{/reservas/solicitar}" th:object="${solicitudReserva}" method="post" novalidate>
+                            <input type="hidden" th:field="*{propiedadId}">
+                            
+                            <div class="mb-3">
+                                <label for="fechaInicio" class="form-label required-field">Fecha de llegada</label>
+                                <input type="date" class="form-control" id="fechaInicio" th:field="*{fechaInicio}" required>
+                                <div class="invalid-feedback" th:if="${#fields.hasErrors('fechaInicio')}" th:errors="*{fechaInicio}">
+                                    La fecha de llegada es obligatoria
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="fechaFin" class="form-label required-field">Fecha de salida</label>
+                                <input type="date" class="form-control" id="fechaFin" th:field="*{fechaFin}" required>
+                                <div class="invalid-feedback" th:if="${#fields.hasErrors('fechaFin')}" th:errors="*{fechaFin}">
+                                    La fecha de salida es obligatoria
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="numHuespedes" class="form-label required-field">Número de huéspedes</label>
+                                <select class="form-select" id="numHuespedes" th:field="*{numHuespedes}" required>
+                                    <option value="">Selecciona el número de huéspedes</option>
+                                    <option th:each="i : ${#numbers.sequence(1, propiedad.capacidad)}" 
+                                            th:value="${i}" 
+                                            th:text="${i} + (${i == 1} ? ' huésped' : ' huéspedes')">
+                                        1 huésped
+                                    </option>
+                                </select>
+                                <div class="invalid-feedback" th:if="${#fields.hasErrors('numHuespedes')}" th:errors="*{numHuespedes}">
+                                    El número de huéspedes es obligatorio
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="comentarios" class="form-label">Comentarios para el anfitrión <span class="text-muted">(opcional)</span></label>
+                                <textarea class="form-control" id="comentarios" th:field="*{comentarios}" rows="3" placeholder="Comparte información relevante sobre tu viaje, hora de llegada, etc."></textarea>
+                            </div>
+
+                            <div class="reservation-summary p-3 bg-light rounded mb-4" id="reservationSummary" style="display: none;">
+                                <h6 class="border-bottom pb-2 mb-3">Resumen de la reserva</h6>
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span>Fechas:</span>
+                                    <span id="summaryDates">-</span>
+                                </div>
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span>Noches:</span>
+                                    <span id="summaryNights">-</span>
+                                </div>
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span>Huéspedes:</span>
+                                    <span id="summaryGuests">-</span>
+                                </div>
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span>Precio base:</span>
+                                    <span id="summaryBasePrice">-</span>
+                                </div>
+                                <div class="d-flex justify-content-between fw-bold border-top pt-2 mt-2">
+                                    <span>Total:</span>
+                                    <span id="summaryTotal">-</span>
+                                </div>
+                            </div>
+
+                            <div class="availability-check-result" id="availabilityResult" style="display: none;"></div>
+
+                            <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                                <a th:href="@{'/propiedades/' + ${propiedad.id}}" class="btn btn-secondary me-md-2">
+                                    <i class="bi bi-arrow-left me-1"></i> Volver
+                                </a>
+                                <button type="button" id="checkAvailabilityBtn" class="btn btn-info">
+                                    <i class="bi bi-calendar-check me-1"></i> Verificar disponibilidad
+                                </button>
+                                <button type="submit" id="submitReservationBtn" class="btn btn-primary" disabled>
+                                    <i class="bi bi-send me-1"></i> Solicitar reserva
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Calendario de disponibilidad -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card shadow">
+                    <div class="card-header bg-light">
+                        <h5 class="card-title mb-0">Calendario de disponibilidad</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="text-center my-3">
+                            <div class="d-inline-block me-3">
+                                <span class="d-inline-block me-1 rounded" style="width: 15px; height: 15px; background-color: #28a745;"></span>
+                                <span>Disponible</span>
+                            </div>
+                            <div class="d-inline-block me-3">
+                                <span class="d-inline-block me-1 rounded" style="width: 15px; height: 15px; background-color: #dc3545;"></span>
+                                <span>No disponible</span>
+                            </div>
+                            <div class="d-inline-block">
+                                <span class="d-inline-block me-1 rounded" style="width: 15px; height: 15px; background-color: #ffc107;"></span>
+                                <span>Tu selección</span>
+                            </div>
+                        </div>
+                        <div id="availability-calendar" class="px-2 py-3">
+                            <div class="text-center">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Cargando calendario...</span>
+                                </div>
+                                <p class="mt-2">Cargando calendario de disponibilidad...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer th:replace="fragments/footer :: footer"></footer>
+    
+    <!-- Script específico para la página de reserva -->
+    <script th:src="@{/js/nueva-reserva.js}"></script>
+</body>
+</html>
