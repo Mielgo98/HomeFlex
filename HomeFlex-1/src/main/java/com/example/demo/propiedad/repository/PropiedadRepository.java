@@ -16,11 +16,19 @@ import com.example.demo.usuario.model.UsuarioVO;
 @Repository
 public interface PropiedadRepository extends JpaRepository<PropiedadVO, Long> {
      
+	/**
+	 * Encuentra todas las propiedades de un propietario por su ID
+	 * @param propietarioId ID del propietario
+	 * @return Lista de propiedades del propietario
+	 */
+	List<PropiedadVO> findByPropietarioId(Long propietarioId);
+
+	
     // Buscar propiedades de un propietario
     List<PropiedadVO> findByPropietario(UsuarioVO propietario);
     
     // Buscar propiedades de un propietario paginadas
-    Page<PropiedadVO> findByPropietario(UsuarioVO propietario, Pageable pageable);
+    List<PropiedadVO> findByPropietarioUsername(String username, Pageable p);
     
     // Buscar propiedades por estado de activación
     List<PropiedadVO> findByPropietarioAndActivo(UsuarioVO propietario, Boolean activo);
@@ -50,6 +58,13 @@ public interface PropiedadRepository extends JpaRepository<PropiedadVO, Long> {
     List<PropiedadVO> findByActivoTrue();
     
     Page<PropiedadVO> findByActivoTrue(Pageable pageable);
+    
+    Page<PropiedadVO> findByPropietarioIdAndTituloContainingIgnoreCaseAndActivo(
+            Long propietarioId,
+            String tituloFiltro,
+            boolean activo,
+            Pageable pageable
+        );
     
     // Búsqueda avanzada
     @Query("SELECT p FROM PropiedadVO p WHERE " +
@@ -120,4 +135,89 @@ public interface PropiedadRepository extends JpaRepository<PropiedadVO, Long> {
     List<Object[]> agruparPropiedadesPorCiudad(@Param("propietarioId") Long propietarioId);
     
     long countByActivoTrue();
+    
+    
+    /**
+     * Busca propiedades de un propietario paginadas
+     */
+    Page<PropiedadVO> findByPropietario(UsuarioVO propietario, Pageable pageable);
+
+    /**
+     * Busca propiedades de un propietario por texto de búsqueda
+     */
+    @Query("SELECT p FROM PropiedadVO p WHERE p.propietario = :propietario AND " +
+           "(LOWER(p.titulo) LIKE LOWER(CONCAT('%', :busqueda, '%')) OR " +
+           "LOWER(p.descripcion) LIKE LOWER(CONCAT('%', :busqueda, '%')) OR " +
+           "LOWER(p.ciudad) LIKE LOWER(CONCAT('%', :busqueda, '%')) OR " +
+           "LOWER(p.pais) LIKE LOWER(CONCAT('%', :busqueda, '%')))")
+    Page<PropiedadVO> findByPropietarioAndBusqueda(
+            @Param("propietario") UsuarioVO propietario,
+            @Param("busqueda") String busqueda,
+            Pageable pageable);
+
+    /**
+     * Busca propiedades de un propietario por texto de búsqueda y estado de activación
+     */
+    @Query("SELECT p FROM PropiedadVO p WHERE p.propietario = :propietario AND " +
+           "(LOWER(p.titulo) LIKE LOWER(CONCAT('%', :busqueda, '%')) OR " +
+           "LOWER(p.descripcion) LIKE LOWER(CONCAT('%', :busqueda, '%')) OR " +
+           "LOWER(p.ciudad) LIKE LOWER(CONCAT('%', :busqueda, '%')) OR " +
+           "LOWER(p.pais) LIKE LOWER(CONCAT('%', :busqueda, '%'))) AND " +
+           "p.activo = :activo")
+    Page<PropiedadVO> findByPropietarioAndBusquedaAndActivo(
+            @Param("propietario") UsuarioVO propietario,
+            @Param("busqueda") String busqueda,
+            @Param("activo") Boolean activo,
+            Pageable pageable);
+
+    /**
+     * Busca propiedades cercanas a un punto específico
+     */
+    @Query("SELECT p FROM PropiedadVO p WHERE " +
+           "p.latitud BETWEEN (:latitud - :distanciaLatitud) AND (:latitud + :distanciaLatitud) AND " +
+           "p.longitud BETWEEN (:longitud - :distanciaLongitud) AND (:longitud + :distanciaLongitud) AND " +
+           "p.activo = true")
+    List<PropiedadVO> findPropiedadesCercanas(
+            @Param("latitud") Double latitud,
+            @Param("longitud") Double longitud,
+            @Param("distanciaLatitud") Double distanciaLatitud,
+            @Param("distanciaLongitud") Double distanciaLongitud);
+
+    /**
+     * Obtiene las ciudades más populares (con más propiedades)
+     */
+    @Query("SELECT p.ciudad, COUNT(p) FROM PropiedadVO p WHERE p.activo = true " +
+           "GROUP BY p.ciudad ORDER BY COUNT(p) DESC")
+    List<Object[]> findCiudadesPopulares(
+            Pageable pageable);
+
+    /**
+     * Versión simplificada para obtener solo las top N ciudades
+     */
+    @Query(value = "SELECT p.ciudad FROM PropiedadVO p WHERE p.activo = true " +
+           "GROUP BY p.ciudad ORDER BY COUNT(p) DESC",
+           nativeQuery = false)
+    List<String> findCiudadesPopulares(int limit);
+
+    /**
+     * Búsqueda avanzada incluyendo precios con parámetros Double
+     */
+    @Query("SELECT p FROM PropiedadVO p WHERE " +
+           "(:ciudad IS NULL OR LOWER(p.ciudad) LIKE LOWER(CONCAT('%', :ciudad, '%'))) AND " +
+           "(:pais IS NULL OR LOWER(p.pais) LIKE LOWER(CONCAT('%', :pais, '%'))) AND " +
+           "(:capacidad IS NULL OR p.capacidad >= :capacidad) AND " +
+           "(:dormitorios IS NULL OR p.dormitorios >= :dormitorios) AND " +
+           "(:banos IS NULL OR p.banos >= :banos) AND " +
+           "(:precioMin IS NULL OR p.precioDia >= :precioMin) AND " +
+           "(:precioMax IS NULL OR p.precioDia <= :precioMax) AND " +
+           "(p.activo = true)")
+    Page<PropiedadVO> busquedaAvanzadaConPrecio(
+            @Param("ciudad") String ciudad,
+            @Param("pais") String pais,
+            @Param("capacidad") Integer capacidad,
+            @Param("dormitorios") Integer dormitorios,
+            @Param("banos") Integer banos,
+            @Param("precioMin") Double precioMin,
+            @Param("precioMax") Double precioMax,
+            Pageable pageable);
 }

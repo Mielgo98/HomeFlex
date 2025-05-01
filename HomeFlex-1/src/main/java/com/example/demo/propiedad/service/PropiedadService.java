@@ -5,6 +5,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.Month;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -31,6 +32,7 @@ import com.example.demo.propiedad.model.PropiedadVO;
 import com.example.demo.propiedad.repository.PropiedadRepository;
 import com.example.demo.propiedad.event.*;
 import com.example.demo.usuario.model.UsuarioVO;
+import com.example.demo.usuario.repository.UsuarioRepository;
 
 @Service
 public class PropiedadService {
@@ -43,6 +45,9 @@ public class PropiedadService {
     
     @Autowired
     private FotoRepository fotoRepository;
+    
+    @Autowired
+    private UsuarioRepository usuarioRepository;
     
     @Value("${app.upload.dir:uploads}")
     private String uploadDir;
@@ -113,36 +118,18 @@ public class PropiedadService {
         
         Pageable pageable = PageRequest.of(pagina, tamanoPagina, Sort.by("fechaCreacion").descending());
         
-        Page<PropiedadVO> propiedades = propiedadRepository.busquedaAvanzada(
-                ciudad, pais, capacidad, dormitorios, banos, pageable);
-        
-        // Filtro adicional para precios (puede implementarse en la consulta si es necesario)
+        // Verificar si hay filtros de precio
         if (precioMin != null || precioMax != null) {
-            List<PropiedadVO> filtradas = propiedades.getContent().stream()
-                .filter(p -> {
-                    BigDecimal precio = p.getPrecioDia();
-                    boolean cumple = true;
-                    
-                    if (precioMin != null) {
-                        cumple = cumple && precio.doubleValue() >= precioMin;
-                    }
-                    
-                    if (precioMax != null) {
-                        cumple = cumple && precio.doubleValue() <= precioMax;
-                    }
-                    
-                    return cumple;
-                })
-                .collect(Collectors.toList());
-            
-            return new PageImpl<>(
-                filtradas.stream().map(PropiedadDTO::new).collect(Collectors.toList()),
-                pageable,
-                filtradas.size()
-            );
+            // Utilizar la consulta optimizada que incluye precio
+            return propiedadRepository.busquedaAvanzadaConPrecio(
+                    ciudad, pais, capacidad, dormitorios, banos, precioMin, precioMax, pageable)
+                    .map(PropiedadDTO::new);
+        } else {
+            // Usar la consulta estándar
+            return propiedadRepository.busquedaAvanzada(
+                    ciudad, pais, capacidad, dormitorios, banos, pageable)
+                    .map(PropiedadDTO::new);
         }
-        
-        return propiedades.map(PropiedadDTO::new);
     }
     
     /**
@@ -282,56 +269,49 @@ public class PropiedadService {
     }
     
     /**
-     * Obtiene propiedades del propietario con filtros
+     * Obtiene propiedades del propietario con filtros de búsqueda, estado y paginación
+     * @param username Nombre de usuario del propietario
+     * @param busqueda Texto para filtrar propiedades
+     * @param activo Estado de activación de propiedades
+     * @param pageable Información de paginación
+     * @return Página de DTOs de propiedades
      */
     public Page<PropiedadDTO> obtenerPropiedadesPropietarioFiltradas(
-            UsuarioVO propietario,
+            String username,
             String busqueda,
             Boolean activo,
             Pageable pageable) {
+
+        // 1. Buscar el usuario por username
+        UsuarioVO propietario = usuarioRepository.findByUsername(username)
+            .orElseThrow(() -> new RuntimeException("Usuario no encontrado con username: " + username));
+            
+        // 2. Obtiene todas las propiedades del propietario según los filtros
+        Page<PropiedadVO> propiedades;
         
-        // Obtenemos todas las propiedades del propietario
-        List<PropiedadVO> propiedades = propiedadRepository.findByPropietario(propietario);
-        
-        // Aplicamos filtros
-        List<PropiedadVO> propiedadesFiltradas = propiedades.stream()
-            .filter(p -> {
-                boolean cumpleBusqueda = true;
-                boolean cumpleActivo = true;
-                
-                // Filtrar por texto de búsqueda
-                if (busqueda != null && !busqueda.trim().isEmpty()) {
-                    String busquedaLower = busqueda.toLowerCase();
-                    cumpleBusqueda = p.getTitulo().toLowerCase().contains(busquedaLower) ||
-                                    p.getDescripcion().toLowerCase().contains(busquedaLower) ||
-                                    p.getCiudad().toLowerCase().contains(busquedaLower) ||
-                                    p.getPais().toLowerCase().contains(busquedaLower);
-                }
-                
-                // Filtrar por estado activo/inactivo
-                if (activo != null) {
-                    cumpleActivo = p.getActivo() == activo;
-                }
-                
-                return cumpleBusqueda && cumpleActivo;
-            })
-            .collect(Collectors.toList());
-        
-        // Aplicar paginación
-        int start = (int) pageable.getOffset();
-        int end = Math.min((start + pageable.getPageSize()), propiedadesFiltradas.size());
-        
-        // Sublistado para la página actual
-        List<PropiedadVO> paginaPropiedades = start < end ? 
-                propiedadesFiltradas.subList(start, end) : 
-                new ArrayList<>();
-        
-        // Convertir a DTOs
-        List<PropiedadDTO> propiedadesDTO = paginaPropiedades.stream()
-                .map(PropiedadDTO::new)
-                .collect(Collectors.toList());
-        
-        return new PageImpl<>(propiedadesDTO, pageable, propiedadesFiltradas.size());
+        if (busqueda != null && !busqueda.trim().isEmpty()) {
+            if (activo != null) {
+                // Con búsqueda y filtro de activo
+                propiedades = propiedadRepository.findByPropietarioAndBusquedaAndActivo(
+                    propietario, busqueda.toLowerCase(), activo, pageable);
+            } else {
+                // Solo con búsqueda
+                propiedades = propiedadRepository.findByPropietarioAndBusqueda(
+                    propietario, busqueda.toLowerCase(), pageable);
+            }
+        } else {
+            if (activo != null) {
+                // Solo con filtro de activo
+                propiedades = propiedadRepository.findByPropietarioAndActivo(
+                    propietario, activo, pageable);
+            } else {
+                // Sin filtros
+                propiedades = propiedadRepository.findByPropietario(propietario, pageable);
+            }
+        }
+
+        // 3. Mapea los resultados a DTOs
+        return propiedades.map(PropiedadDTO::new);
     }
     
     /**
@@ -342,62 +322,77 @@ public class PropiedadService {
         PropiedadVO propiedad = propiedadRepository.findById(propiedadId)
                 .orElseThrow(() -> new RuntimeException("Propiedad no encontrada"));
         
+        // Verificar si hay fotos para procesar
+        if (fotos == null || fotos.isEmpty()) {
+            return;
+        }
+        
         // Verificar si ya existe una foto principal
         boolean hayFotoPrincipal = fotoRepository.findByPropiedadAndPrincipal(propiedad, true).isPresent();
         
-        // Procesar cada foto
-        for (int i = 0; i < fotos.size(); i++) {
-            MultipartFile foto = fotos.get(i);
-            
-            if (foto.isEmpty()) {
-                continue; // Saltamos archivos vacíos
+        // Crear directorio de subida si no existe
+        try {
+            java.nio.file.Path uploadPath = java.nio.file.Paths.get(uploadDir);
+            if (!java.nio.file.Files.exists(uploadPath)) {
+                java.nio.file.Files.createDirectories(uploadPath);
             }
             
-            try {
-                // Generar nombre único para la foto
-                String fileName = System.currentTimeMillis() + "_" + foto.getOriginalFilename();
+            // Procesar cada foto
+            for (int i = 0; i < fotos.size(); i++) {
+                MultipartFile foto = fotos.get(i);
                 
-                // Crear directorio de subida si no existe
-                java.nio.file.Path uploadPath = java.nio.file.Paths.get(uploadDir);
-                if (!java.nio.file.Files.exists(uploadPath)) {
-                    java.nio.file.Files.createDirectories(uploadPath);
+                if (foto.isEmpty()) {
+                    continue; // Saltamos archivos vacíos
                 }
                 
-                // Guardar el archivo
-                java.nio.file.Path filePath = uploadPath.resolve(fileName);
-                foto.transferTo(filePath.toFile());
-                
-                // Crear la entidad FotoVO
-                FotoVO fotoVO = new FotoVO();
-                fotoVO.setPropiedad(propiedad);
-                fotoVO.setUrl("/uploads/" + fileName);
-                fotoVO.setDescripcion("Foto de " + propiedad.getTitulo());
-                
-                // Determinar si es la foto principal
-                boolean esPrincipal = fotoPrincipalIndex != null && i == fotoPrincipalIndex;
-                if (esPrincipal || (!hayFotoPrincipal && i == 0)) {
-                    // Si es la primera foto o la seleccionada como principal y no hay otra principal
-                    fotoVO.setPrincipal(true);
-                    hayFotoPrincipal = true;
-                    
-                    // Quitar el estado de principal a otras fotos si es necesario
-                    if (i > 0 || esPrincipal) {
-                        Optional<FotoVO> anterior = fotoRepository.findByPropiedadAndPrincipal(propiedad, true);
-                        anterior.ifPresent(f -> {
-                            f.setPrincipal(false);
-                            fotoRepository.save(f);
-                        });
+                try {
+                    // Generar nombre único para la foto
+                    String originalFilename = foto.getOriginalFilename();
+                    if (originalFilename == null) {
+                        originalFilename = "imagen.jpg";
                     }
-                } else {
-                    fotoVO.setPrincipal(false);
+                    
+                    String fileName = System.currentTimeMillis() + "_" + 
+                                    originalFilename.replaceAll("[^a-zA-Z0-9.-]", "_");
+                    
+                    // Guardar el archivo
+                    java.nio.file.Path filePath = uploadPath.resolve(fileName);
+                    foto.transferTo(filePath.toFile());
+                    
+                    // Crear la entidad FotoVO
+                    FotoVO fotoVO = new FotoVO();
+                    fotoVO.setPropiedad(propiedad);
+                    fotoVO.setUrl("/uploads/" + fileName);
+                    fotoVO.setDescripcion("Foto de " + propiedad.getTitulo());
+                    
+                    // Determinar si es la foto principal
+                    boolean esPrincipal = fotoPrincipalIndex != null && i == fotoPrincipalIndex;
+                    if (esPrincipal || (!hayFotoPrincipal && i == 0)) {
+                        // Si es la primera foto o la seleccionada como principal y no hay otra principal
+                        fotoVO.setPrincipal(true);
+                        hayFotoPrincipal = true;
+                        
+                        // Quitar el estado de principal a otras fotos si es necesario
+                        if (i > 0 || esPrincipal) {
+                            Optional<FotoVO> anterior = fotoRepository.findByPropiedadAndPrincipal(propiedad, true);
+                            anterior.ifPresent(f -> {
+                                f.setPrincipal(false);
+                                fotoRepository.save(f);
+                            });
+                        }
+                    } else {
+                        fotoVO.setPrincipal(false);
+                    }
+                    
+                    // Guardar la foto
+                    fotoRepository.save(fotoVO);
+                    
+                } catch (IOException e) {
+                    throw new RuntimeException("Error al procesar la foto: " + e.getMessage());
                 }
-                
-                // Guardar la foto
-                fotoRepository.save(fotoVO);
-                
-            } catch (IOException e) {
-                throw new RuntimeException("Error al procesar la foto: " + e.getMessage());
             }
+        } catch (IOException e) {
+            throw new RuntimeException("Error al crear directorio para fotos: " + e.getMessage());
         }
     }
     
@@ -415,6 +410,11 @@ public class PropiedadService {
         // Verificar que la foto pertenezca a la propiedad
         if (!nuevaPrincipal.getPropiedad().getId().equals(propiedadId)) {
             throw new RuntimeException("La foto no pertenece a esta propiedad");
+        }
+        
+        // Si ya es principal, no hay que hacer nada
+        if (nuevaPrincipal.isPrincipal()) {
+            return;
         }
         
         // Quitar estado principal a la foto actual
@@ -437,27 +437,48 @@ public class PropiedadService {
         PropiedadVO propiedad = propiedadRepository.findById(propiedadId)
                 .orElseThrow(() -> new RuntimeException("Propiedad no encontrada"));
         
+        // Verificar si hay fotos para eliminar
+        if (fotosIds == null || fotosIds.isEmpty()) {
+            return;
+        }
+        
+        // Obtener todas las fotos de la propiedad
+        List<FotoVO> todasLasFotos = fotoRepository.findByPropiedad(propiedad);
+        boolean eliminarPrincipal = false;
+        List<FotoVO> fotosAEliminar = new ArrayList<>();
+        
+        // Identificar las fotos a eliminar
         for (Long fotoId : fotosIds) {
-            FotoVO foto = fotoRepository.findById(fotoId)
-                    .orElseThrow(() -> new RuntimeException("Foto no encontrada"));
+            Optional<FotoVO> fotoOpt = todasLasFotos.stream()
+                    .filter(f -> f.getId().equals(fotoId))
+                    .findFirst();
             
-            // Verificar que la foto pertenezca a la propiedad
-            if (!foto.getPropiedad().getId().equals(propiedadId)) {
-                throw new RuntimeException("La foto no pertenece a esta propiedad");
-            }
-            
-            // Si es la foto principal y hay más fotos, establecer otra como principal
-            if (foto.isPrincipal()) {
-                List<FotoVO> otrasFotos = fotoRepository.findByPropiedad(propiedad);
-                otrasFotos.removeIf(f -> f.getId().equals(fotoId) || fotosIds.contains(f.getId()));
+            if (fotoOpt.isPresent()) {
+                FotoVO foto = fotoOpt.get();
+                fotosAEliminar.add(foto);
                 
-                if (!otrasFotos.isEmpty()) {
-                    FotoVO nuevaPrincipal = otrasFotos.get(0);
-                    nuevaPrincipal.setPrincipal(true);
-                    fotoRepository.save(nuevaPrincipal);
+                // Verificar si vamos a eliminar la principal
+                if (foto.isPrincipal()) {
+                    eliminarPrincipal = true;
                 }
             }
+        }
+        
+        // Si eliminamos la principal y quedan más fotos, asignar una nueva principal
+        if (eliminarPrincipal && todasLasFotos.size() > fotosAEliminar.size()) {
+            // Encontrar la primera foto que no vamos a eliminar
+            Optional<FotoVO> nuevaPrincipal = todasLasFotos.stream()
+                    .filter(f -> !fotosAEliminar.contains(f))
+                    .findFirst();
             
+            nuevaPrincipal.ifPresent(f -> {
+                f.setPrincipal(true);
+                fotoRepository.save(f);
+            });
+        }
+        
+        // Eliminar cada foto
+        for (FotoVO foto : fotosAEliminar) {
             // Eliminar el archivo físico si es posible
             String filePath = foto.getUrl().replace("/uploads/", "");
             try {
@@ -482,15 +503,10 @@ public class PropiedadService {
             Pageable pageable = PageRequest.of(0, 6, Sort.by("fechaCreacion").descending());
             Page<PropiedadVO> propiedadesPage = propiedadRepository.findByActivoTrueWithFotos(pageable);
             
-            List<PropiedadDTO> propiedadesDTOs = new ArrayList<>();
+            return propiedadesPage.getContent().stream()
+                .map(PropiedadDTO::new)
+                .collect(Collectors.toList());
             
-            // Convertir a DTOs de manera segura
-            for (PropiedadVO propiedad : propiedadesPage.getContent()) {
-                PropiedadDTO dto = new PropiedadDTO(propiedad);
-                propiedadesDTOs.add(dto);
-            }
-            
-            return propiedadesDTOs;
         } catch (Exception e) {
             // En caso de error, intentar con el método alternativo
             System.err.println("Error al obtener propiedades destacadas: " + e.getMessage());
@@ -499,7 +515,9 @@ public class PropiedadService {
             List<PropiedadVO> propiedades = propiedadRepository.findByActivoTrue();
             List<PropiedadDTO> propiedadesDTOs = new ArrayList<>();
             
-            for (PropiedadVO propiedad : propiedades.subList(0, Math.min(propiedades.size(), 6))) {
+            for (PropiedadVO propiedad : propiedades.stream()
+                                              .limit(6)
+                                              .collect(Collectors.toList())) {
                 PropiedadDTO dto = new PropiedadDTO();
                 dto.setId(propiedad.getId());
                 dto.setTitulo(propiedad.getTitulo());
@@ -524,28 +542,23 @@ public class PropiedadService {
      * Busca propiedades cercanas según coordenadas
      */
     public List<PropiedadDTO> buscarPropiedadesCercanas(Double latitud, Double longitud, Integer distanciaKm) {
+        if (latitud == null || longitud == null) {
+            throw new RuntimeException("Las coordenadas son obligatorias");
+        }
+        
+        if (distanciaKm == null || distanciaKm <= 0) {
+            distanciaKm = 10; // Valor por defecto
+        }
+        
         double distanciaLatitud = distanciaKm / 111.0;
         double distanciaLongitud = distanciaKm / (111.0 * Math.cos(Math.toRadians(latitud)));
         
-        // Buscar todas las propiedades activas
-        List<PropiedadVO> todasPropiedades = propiedadRepository.findByActivoTrue();
-        
-        // Filtrar por proximidad
-        List<PropiedadVO> propiedadesCercanas = todasPropiedades.stream()
-            .filter(p -> {
-                if (p.getLatitud() == null || p.getLongitud() == null) {
-                    return false;
-                }
-                
-                double diffLat = Math.abs(p.getLatitud().doubleValue() - latitud);
-                double diffLong = Math.abs(p.getLongitud().doubleValue() - longitud);
-                
-                return diffLat <= distanciaLatitud && diffLong <= distanciaLongitud;
-            })
-            .limit(10) // Limitamos a 10 resultados
-            .collect(Collectors.toList());
+        // Buscar propiedades cercanas utilizando una consulta optimizada
+        List<PropiedadVO> propiedadesCercanas = propiedadRepository.findPropiedadesCercanas(
+                latitud, longitud, distanciaLatitud, distanciaLongitud);
         
         return propiedadesCercanas.stream()
+                .limit(10) // Limitamos a 10 resultados
                 .map(PropiedadDTO::new)
                 .collect(Collectors.toList());
     }
@@ -574,10 +587,8 @@ public class PropiedadService {
     public PropiedadEstadisticasDTO obtenerEstadisticasPropietario(Long propietarioId) {
         PropiedadEstadisticasDTO estadisticas = new PropiedadEstadisticasDTO();
         
-        // Obtener propiedades del propietario
-        List<PropiedadVO> propiedades = propiedadRepository.findAll().stream()
-                .filter(p -> p.getPropietario().getId().equals(propietarioId))
-                .collect(Collectors.toList());
+        // Obtener propiedades del propietario usando el repository
+        List<PropiedadVO> propiedades = propiedadRepository.findByPropietarioId(propietarioId);
         
         // Total de propiedades
         estadisticas.setTotalPropiedades(propiedades.size());
@@ -610,8 +621,6 @@ public class PropiedadService {
             publicacionesMes.put(mes.toString(), publicacionesPorMes.getOrDefault(mes, 0));
         }
         estadisticas.setPublicacionesPorMes(publicacionesMes);
-        
-        // Cualquier otra estadística que necesites...
         
         return estadisticas;
     }

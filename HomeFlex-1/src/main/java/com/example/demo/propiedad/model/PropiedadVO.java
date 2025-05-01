@@ -96,4 +96,18 @@ public class PropiedadVO {
                 .map(FotoVO::getUrl)
                 .orElse("/images/property-placeholder.jpg"); // Imagen por defecto
     }
+    
+    public PropiedadVO(PropiedadDTO dto) {
+        this.id = dto.getId();
+        this.titulo = dto.getTitulo();
+        this.descripcion = dto.getDescripcion();
+        this.precioDia = dto.getPrecioDia();
+        this.ciudad = dto.getCiudad();
+        this.pais = dto.getPais();
+        this.capacidad = dto.getCapacidad();
+        this.dormitorios = dto.getDormitorios();
+        this.banos = dto.getBanos();
+        // Quedamos que la foto principal se gestiona en la capa DTO/Controller,
+        // así que aquí no la almacenamos; si necesitas guardarla, añade el campo correspondiente.
+    }
 }
