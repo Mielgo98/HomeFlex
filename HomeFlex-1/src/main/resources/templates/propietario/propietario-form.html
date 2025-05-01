@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="es"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout">
+<head th:replace="fragments/head :: head('Editar propiedad - HomeFlex')"></head>
+<body>
+  <header th:replace="fragments/header :: header"></header>
+
+  <main class="container py-4">
+    <h1 class="mb-4">Editar propiedad</h1>
+
+    <form th:action="@{/propietario/propiedades/editar/{id}(id=${propiedad.id})}"
+          th:object="${propiedad}"
+          method="post" class="row g-3" id="propiedad-form">
+
+      <!-- Título -->
+      <div class="col-12">
+        <label for="titulo" class="form-label">Título</label>
+        <input type="text" id="titulo" th:field="*{titulo}"
+               class="form-control" required>
+      </div>
+
+      <!-- Descripción -->
+      <div class="col-12">
+        <label for="descripcion" class="form-label">Descripción</label>
+        <textarea id="descripcion" th:field="*{descripcion}"
+                  class="form-control" rows="4" required></textarea>
+      </div>
+
+      <!-- Dirección -->
+      <div class="col-md-4">
+        <label for="direccion" class="form-label">Dirección</label>
+        <input type="text" id="direccion" th:field="*{direccion}"
+               class="form-control" required>
+      </div>
+
+      <!-- Ciudad -->
+      <div class="col-md-4">
+        <label for="ciudad" class="form-label">Ciudad</label>
+        <input type="text" id="ciudad" th:field="*{ciudad}"
+               class="form-control" required>
+      </div>
+
+      <!-- País -->
+      <div class="col-md-4">
+        <label for="pais" class="form-label">País</label>
+        <input type="text" id="pais" th:field="*{pais}"
+               class="form-control" required>
+      </div>
+
+      <!-- Precio por noche -->
+      <div class="col-md-3">
+        <label for="precioDia" class="form-label">Precio (€ / noche)</label>
+        <input type="number" step="0.01" id="precioDia" th:field="*{precioDia}"
+               class="form-control" required>
+      </div>
+
+      <!-- Habitaciones -->
+      <div class="col-md-3">
+        <label for="dormitorios" class="form-label">Habitaciones</label>
+        <input type="number" id="dormitorios" th:field="*{dormitorios}"
+               class="form-control" min="0" required>
+      </div>
+
+      <!-- Baños -->
+      <div class="col-md-3">
+        <label for="banos" class="form-label">Baños</label>
+        <input type="number" id="banos" th:field="*{banos}"
+               class="form-control" min="0" required>
+      </div>
+
+      <!-- Capacidad -->
+      <div class="col-md-3">
+        <label for="capacidad" class="form-label">Capacidad (invitados)</label>
+        <input type="number" id="capacidad" th:field="*{capacidad}"
+               class="form-control" min="1" required>
+      </div>
+	
+	 <input type="hidden" id="latitud"  name="latitud"  />
+	 <input type="hidden" id="longitud" name="longitud" />
+
+      <div class="col-12 d-flex justify-content-end">
+        <a th:href="@{/propietario/propiedades}"
+           class="btn btn-secondary me-2">Cancelar</a>
+        <button type="submit" class="btn btn-primary">Guardar cambios</button>
+      </div>
+    </form>
+  </main>
+
+  <footer th:replace="fragments/footer :: footer"></footer>
+  <script th:src="@{/js/propietario-form.js}" defer></script>
+</body>
+</html>

@@ -1,57 +1,67 @@
 package com.example.demo.propiedad.control;
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
+import java.security.Principal;
+
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import com.example.demo.propiedad.model.PropiedadDTO;
+import com.example.demo.propiedad.model.PropiedadVO;
 import com.example.demo.propiedad.service.PropiedadService;
-import com.example.demo.usuario.service.UsuarioService;
-
-import jakarta.servlet.http.HttpServletRequest;
-import java.security.Principal;
-import java.util.Optional;
 
 @Controller
+@RequestMapping("/propietario")
 public class PropietarioController {
 
     private final PropiedadService propiedadService;
-    private final UsuarioService usuarioService;
 
-    @Autowired
-    public PropietarioController(PropiedadService propiedadService, UsuarioService usuarioService) {
+    public PropietarioController(PropiedadService propiedadService) {
         this.propiedadService = propiedadService;
-        this.usuarioService = usuarioService;
     }
 
-    @GetMapping("/propietario/propiedades")
-    public String listarPropiedades(
-            Principal principal,
-            Model model,
-            Pageable pageable,
-            HttpServletRequest request
-    ) {
-        // Sacamos los parámetros de filtrado (si vienen)
-        Optional<String> busqueda = Optional.ofNullable(request.getParameter("busqueda"));
-        Optional<Boolean> activo = Optional.ofNullable(request.getParameter("activo"))
-                                          .map(Boolean::valueOf);
-
-        // Llamamos al servicio pasando el username del propietario
-        Page<PropiedadDTO> page = propiedadService
-            .obtenerPropiedadesPropietarioFiltradas(
-                principal.getName(), // Pasamos el username
-                busqueda.orElse(""),
-                activo.orElse(null),
-                pageable
-            );
-
-        // IMPORTANTE: Pasamos el objeto Page completo, no solo el contenido
-        model.addAttribute("propiedades", page);
-        model.addAttribute("busqueda", busqueda.orElse(""));
-        model.addAttribute("activo", activo.orElse(null));
+    /**
+     * Muestra la vista Thymeleaf con el listado vacío.
+     * El JS se encargará de llamar al REST y poblarla.
+     */
+    @GetMapping("/propiedades")
+    public String verMisPropiedades(Model model, Principal principal) {
+        model.addAttribute("username", principal.getName());
         return "propietario/mis-propiedades";
+    }
+
+    /**
+     * Muestra el formulario de edición, cargando los datos de la propiedad.
+     */
+    @GetMapping("/propiedades/editar/{id}")
+    public String editarForm(@PathVariable Long id, Model model) {
+        PropiedadDTO dto = propiedadService.obtenerPropiedadPorId(id);
+        PropiedadVO vo = new PropiedadVO(dto);
+        model.addAttribute("propiedad", vo);
+        return "propietario/propietario-form";
+    }
+
+    /**
+     * Procesa el envío del formulario de edición.
+     */
+    @PostMapping("/propiedades/editar/{id}")
+    public String editarSubmit(
+            @PathVariable Long id,
+            @ModelAttribute("propiedad") PropiedadVO vo,
+            RedirectAttributes flash
+    ) {
+        vo.setId(id);
+        propiedadService.actualizarPropiedad(id, vo);
+        flash.addFlashAttribute("success", "Propiedad actualizada correctamente");
+        return "redirect:/propietario/propiedades";
+    }
+
+    /**
+     * Vista de reservas para el propietario.
+     */
+    @GetMapping("/reservas")
+    public String verReservas() {
+        return "propietario/reservas";
     }
 }

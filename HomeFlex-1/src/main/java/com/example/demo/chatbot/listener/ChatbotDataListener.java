@@ -16,17 +16,17 @@ public class ChatbotDataListener {
     @Autowired
     private IChatbotService chatbotService;
     
-    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @TransactionalEventListener(phase = TransactionPhase.BEFORE_COMMIT)
     public void handlePropiedadCreatedEvent(PropiedadCreatedEvent event) {
         chatbotService.updatePropertyInVectorStore(event.getPropiedadId());
     }
     
-    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @TransactionalEventListener(phase = TransactionPhase.BEFORE_COMMIT)
     public void handlePropiedadUpdatedEvent(PropiedadUpdatedEvent event) {
         chatbotService.updatePropertyInVectorStore(event.getPropiedadId());
     }
     
-    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @TransactionalEventListener(phase = TransactionPhase.BEFORE_COMMIT)
     public void handlePropiedadDeletedEvent(PropiedadDeletedEvent event) {
         chatbotService.removePropertyFromVectorStore(event.getPropiedadId());
     }

@@ -1,67 +1,181 @@
-document.addEventListener('DOMContentLoaded', () => {
-  const container = document.getElementById('propiedadesContainer');
-  const paginacion = document.getElementById('paginacion');
-  const btnFiltrar = document.getElementById('btnFiltrar');
+// propietario-propiedades.js
 
-  let pagina = 0, tamaño = 10;
+// --- Helpers / configuración ---
 
-  function cargaDatos() {
-    const busq = document.getElementById('busqueda').value;
-    const activo = document.getElementById('filtroActivo').value;
-    fetch(`/propietario/api/propiedades?busqueda=${encodeURIComponent(busq)}&activo=${activo}&page=${pagina}&size=${tamaño}`)
-      .then(res => res.json())
-      .then(data => {
-        container.innerHTML = '';
-        data.content.forEach(p => {
-          const card = document.createElement('div');
-          card.className = 'col';
-          card.innerHTML = `
-            <div class="card h-100 shadow-sm">
-              <img src="${p.fotoPrincipal}" class="card-img-top" alt="${p.titulo}">
-              <div class="card-body">
-                <h5 class="card-title">${p.titulo}</h5>
-                <p class="card-text">${p.ciudad}, ${p.pais}</p>
-                <a href="/propietario/propiedades/${p.id}/editar" class="btn btn-sm btn-outline-primary">Editar</a>
-                <button data-id="${p.id}" class="btn btn-sm btn-danger btn-eliminar">Eliminar</button>
-              </div>
-            </div>`;
-          container.append(card);
-        });
-        // paginación
-        let htmlPages = '';
-        for (let i = 0; i < data.totalPages; i++) {
-          htmlPages += `<li class="page-item ${i===pagina?'active':''}">
-                          <a class="page-link" href="#" data-page="${i}">${i+1}</a>
-                        </li>`;
-        }
-        paginacion.innerHTML = `<ul class="pagination justify-content-center">${htmlPages}</ul>`;
+// Obtiene el valor de una cookie
+console.log("RULANDO")
+function getCookie(name) {
+  const matches = document.cookie.match(new RegExp(
+    "(?:^|; )" +
+      name.replace(/([.$?*|{}()\[\]\\\/+^])/g, '\\$1') +
+      "=([^;]*)"
+  ));
+  return matches ? decodeURIComponent(matches[1]) : null;
+}
+
+// Llamada genérica a Nominatim para geocodificar una dirección
+async function geocode(address, city) {
+	console.log("llamando")
+  const q = encodeURIComponent(`${address}, ${city}`);
+  const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${q}`;
+  const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+  if (!res.ok) throw new Error('Error al geocodificar');
+  const data = await res.json();
+  if (!data.length) return null;
+  return {
+    lat: data[0].lat,
+    lon: data[0].lon
+  };
+}
+
+// --- Listado, editar y eliminar propiedades ---
+
+function cargarMisPropiedades(page = 0, size = 20) {
+  const jwt = getCookie('jwt_token');
+  fetch(`/api/propietario/propiedades?page=${page}&size=${size}`, {
+    headers: {
+      'Authorization': 'Bearer ' + jwt,
+      'Accept': 'application/json'
+    }
+  })
+    .then(res => {
+      if (res.status === 401) {
+        window.location = '/login';
+        throw new Error('No autorizado');
+      }
+      return res.json();
+    })
+    .then(data => renderPropiedades(data))
+    .catch(err => console.error(err));
+}
+
+function renderPropiedades(page) {
+  const container = document.getElementById('propiedades-container');
+  if (!container) return console.error('No existe #propiedades-container');
+  container.innerHTML = '';
+  page.content.forEach(prop => {
+    const card = document.createElement('div');
+    card.className = 'card mb-3';
+    card.innerHTML = `
+      <div class="row g-0">
+        <div class="col-md-4">
+          <img src="${prop.fotoPrincipal}" class="img-fluid rounded-start" alt="${prop.titulo}">
+        </div>
+        <div class="col-md-8">
+          <div class="card-body">
+            <h5 class="card-title">${prop.titulo}</h5>
+            <p class="card-text">${prop.descripcion}</p>
+            <p class="card-text"><small class="text-muted">${prop.ciudad}, ${prop.pais}</small></p>
+            <button class="btn btn-sm btn-primary btn-editar" data-id="${prop.id}">Editar</button>
+            <button class="btn btn-sm btn-danger btn-eliminar" data-id="${prop.id}">Eliminar</button>
+          </div>
+        </div>
+      </div>
+    `;
+    container.appendChild(card);
+  });
+
+  document.querySelectorAll('.btn-editar').forEach(btn =>
+    btn.addEventListener('click', () => {
+      window.location = `/propietario/propiedades/editar/${btn.dataset.id}`;
+    })
+  );
+
+  document.querySelectorAll('.btn-eliminar').forEach(btn =>
+    btn.addEventListener('click', () => {
+      Swal.fire({
+        title: '¿Eliminar propiedad?',
+        text: "¡Esta acción no se puede deshacer!",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Sí, eliminar',
+        cancelButtonText: 'Cancelar'
+      }).then(({ isConfirmed }) => {
+        if (isConfirmed) eliminarPropiedad(btn.dataset.id);
       });
+    })
+  );
+}
+
+function eliminarPropiedad(id) {
+  const jwt = getCookie('jwt_token');
+  fetch(`/api/propietario/propiedades/${id}`, {
+    method: 'DELETE',
+    headers: {
+      'Authorization': 'Bearer ' + jwt
+    }
+  })
+    .then(res => {
+      if (res.status === 401) {
+        window.location = '/login';
+        throw new Error('No autorizado');
+      }
+      if (!res.ok) throw new Error('Error al eliminar');
+    })
+    .then(() => {
+      Swal.fire({
+        title: '¡Eliminada!',
+        text: 'Tu propiedad ha sido eliminada.',
+        icon: 'success',
+        timer: 2000,
+        showConfirmButton: false
+      });
+      cargarMisPropiedades();
+    })
+    .catch(err => {
+      console.error(err);
+      Swal.fire({
+        title: 'Error',
+        text: 'No se pudo eliminar la propiedad.',
+        icon: 'error'
+      });
+    });
+}
+
+// --- Geocodificación y envío de formulario de creación/edición ---
+
+async function geocodeAndSubmit(event) {
+  event.preventDefault();
+  const form = event.target;
+  const address = form.querySelector('input[name="direccion"]').value.trim();
+  const city    = form.querySelector('input[name="ciudad"]').value.trim();
+  if (!address || !city) {
+    return Swal.fire('Faltan datos', 'Debes indicar dirección y ciudad.', 'warning');
   }
 
-  // eventos
-  btnFiltrar.addEventListener('click', e => {
-    e.preventDefault();
-    pagina = 0;
-    cargaDatos();
+  Swal.fire({
+    title: 'Obteniendo coordenadas…',
+    allowOutsideClick: false,
+    didOpen: () => Swal.showLoading()
   });
 
-  paginacion.addEventListener('click', e => {
-    if (e.target.matches('.page-link')) {
-      pagina = +e.target.dataset.page;
-      cargaDatos();
+  try {
+    const pos = await geocode(address, city);
+    if (!pos) {
+      Swal.close();
+      return Swal.fire('No encontrado', 'No hemos podido geocodificar esa dirección.', 'error');
     }
-  });
+    // Rellenamos campos ocultos
+    form.querySelector('input[name="latitud"]').value  = pos.lat;
+    form.querySelector('input[name="longitud"]').value = pos.lon;
 
-  container.addEventListener('click', e => {
-    if (e.target.classList.contains('btn-eliminar')) {
-      const id = e.target.dataset.id;
-      if (confirm('¿Seguro que quieres eliminar esta propiedad?')) {
-        fetch(`/propietario/api/propiedades/${id}`, { method: 'DELETE' })
-          .then(_ => cargaDatos());
-      }
-    }
-  });
+    // Ahora enviamos el formulario (por defecto POST/PUT)
+    form.submit();
 
-  // primera carga
-  cargaDatos();
+  } catch (err) {
+    console.error(err);
+    Swal.fire('Error', 'Hubo un problema al consultar la API de geocodificación.', 'error');
+  }
+}
+
+// --- Inicialización al cargar la página ---
+
+document.addEventListener('DOMContentLoaded', () => {
+  cargarMisPropiedades();
+
+  // Si existe el formulario de propiedad, le engancha el submit
+  const propForm = document.getElementById('propiedad-form');
+  if (propForm) {
+    propForm.addEventListener('submit', geocodeAndSubmit);
+  }
 });

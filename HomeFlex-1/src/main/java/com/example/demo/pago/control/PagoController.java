@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import com.example.demo.config.StripeConfig;
+import com.example.demo.pago.model.PagoDTO;
 import com.example.demo.pago.model.PagoVO;
 import com.example.demo.pago.service.PagoGestionService;
 import com.example.demo.pago.service.PagoService;
@@ -21,6 +22,7 @@ import com.stripe.model.checkout.Session;
 import com.stripe.net.Webhook;
 
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
 
 @Controller
 @RequestMapping("/pago")
@@ -41,6 +43,90 @@ public class PagoController {
         this.stripeConfig = stripeConfig;
     }
 
+    /**
+     * Muestra el formulario de pago para una reserva
+     */
+    @GetMapping("/formulario")
+    public String mostrarFormularioPago(@RequestParam Long reservaId,
+                                       @RequestParam(required = false) String idSesion,
+                                       Model model,
+                                       Principal principal) {
+        if (principal == null) return "redirect:/login";
+        
+        // Obtener la reserva
+        ReservaDTO reserva = reservaService.obtenerReservaPorId(reservaId);
+        
+        // Verificar que el usuario es el inquilino
+        if (!reserva.getNombreUsuario().equals(principal.getName())) {
+            model.addAttribute("error", "No tienes permiso para realizar este pago");
+            return "error";
+        }
+        
+        // Crear o recuperar el pago
+        PagoVO pagoVO;
+        PagoDTO pagoDTO = new PagoDTO();
+        
+        if (idSesion != null && !idSesion.isEmpty()) {
+            // Si hay una sesión, obtener el pago existente
+            pagoVO = pagoGestionService.obtenerPagoPorIdSesion(idSesion);
+            pagoDTO = PagoDTO.from(pagoVO);
+        } else {
+            // Si no hay sesión, crear uno nuevo
+            pagoVO = pagoGestionService.toPagoVO(reserva);
+            String nuevaSesion = "sess_" + java.util.UUID.randomUUID().toString().substring(0, 10);
+            pagoDTO.setReservaId(reservaId);
+            pagoDTO.setMonto(reserva.getPrecioTotal());
+            pagoDTO.setIdSesion(nuevaSesion);
+            pagoDTO.setMoneda("EUR");
+        }
+        
+        model.addAttribute("reserva", reserva);
+        model.addAttribute("pago", pagoDTO);
+        
+        return "pago/formulario-pago";
+    }
+    
+    /**
+     * Procesa el formulario de pago
+     */
+    @PostMapping("/procesar")
+    public String procesarPago(@Valid @ModelAttribute("pago") PagoDTO pagoDTO,
+                               Principal principal,
+                               RedirectAttributes ra) {
+        if (principal == null) return "redirect:/login";
+        
+        try {
+            // Obtener la reserva
+            ReservaDTO reserva = reservaService.obtenerReservaPorId(pagoDTO.getReservaId());
+            
+            // Verificar que el usuario es el inquilino
+            if (!reserva.getNombreUsuario().equals(principal.getName())) {
+                ra.addFlashAttribute("error", "No tienes permiso para realizar este pago");
+                return "redirect:/reservas/mis-reservas";
+            }
+            
+            // Crear o actualizar el pago
+            PagoVO pagoVO = pagoGestionService.crearPagoPendiente(
+                    pagoDTO.getReservaId(), principal.getName(), pagoDTO.getIdSesion());
+            
+            // Simular procesamiento del pago (en producción, se usaría Stripe)
+            pagoGestionService.onCheckoutSessionCompleted(pagoDTO.getIdSesion());
+            
+            // Actualizar el estado de la reserva
+            reservaService.registrarPago(pagoDTO.getReservaId(), principal.getName());
+            
+            // Redireccionar a la página de éxito
+            return "redirect:/pago/exito?idSesion=" + pagoDTO.getIdSesion();
+            
+        } catch (Exception e) {
+            ra.addFlashAttribute("error", "Error al procesar el pago: " + e.getMessage());
+            return "redirect:/pago/fallido?idSesion=" + pagoDTO.getIdSesion() + "&error=" + e.getMessage();
+        }
+    }
+
+    /**
+     * Inicia el proceso de pago directo (sin formulario)
+     */
     @GetMapping("/iniciar")
     public void iniciarPago(@RequestParam Long reservaId,
                             Principal principal,
@@ -50,6 +136,13 @@ public class PagoController {
             return;
         }
         ReservaDTO reserva = reservaService.obtenerReservaPorId(reservaId);
+        
+        // Verificar que el usuario es el inquilino
+        if (!reserva.getNombreUsuario().equals(principal.getName())) {
+            response.sendRedirect("/error?mensaje=No tienes permiso para realizar este pago");
+            return;
+        }
+        
         PagoVO pagoVO = pagoGestionService.toPagoVO(reserva);
         Session session = pagoService.crearSesionPago(pagoVO);
         pagoGestionService.crearPagoPendiente(reservaId,
@@ -108,6 +201,14 @@ public class PagoController {
             return "error";
         }
         ReservaDTO reserva = reservaService.obtenerReservaPorId(pago.getReserva().getId());
+        
+        // Registrar el pago en la reserva (cambia el estado a PAGO_VERIFICADO)
+        try {
+            reservaService.registrarPago(reserva.getId(), principal.getName());
+        } catch (Exception e) {
+            // Si ya estaba registrado, ignoramos el error
+        }
+        
         model.addAttribute("pago", pago);
         model.addAttribute("reserva", reserva);
         return "pago/pago-exitoso";

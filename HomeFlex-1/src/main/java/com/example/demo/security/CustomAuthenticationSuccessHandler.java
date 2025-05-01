@@ -16,31 +16,30 @@ import jakarta.servlet.http.HttpServletResponse;
 
 @Component
 public class CustomAuthenticationSuccessHandler extends SimpleUrlAuthenticationSuccessHandler {
-    
+
     @Autowired
     private JwtUtils jwtUtils;
-    
+
+    public CustomAuthenticationSuccessHandler() {
+        super();
+        setDefaultTargetUrl("/index");
+    }
+
     @Override
-    public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
-            Authentication authentication) throws IOException, ServletException {
-        
-        // Generar el token JWT
-        String jwtToken = jwtUtils.generateJwtToken(authentication);
-        
-        // Guardar el token en una cookie
-        Cookie jwtCookie = new Cookie("jwt_token", jwtToken);
-        jwtCookie.setPath("/");
-        jwtCookie.setHttpOnly(true); //No accesible desde js
-        jwtCookie.setMaxAge(60 * 60 * 24); // 24 horas en segundos
-        
-        jwtCookie.setSecure(true); // Solo para HTTPS
-        
-        response.addCookie(jwtCookie);
-        
-        // Guardar el token en la sesión también (opcional, dependiendo de tu estrategia)
-        request.getSession().setAttribute("jwt_token", jwtToken);
-        
-        // Continúa con el comportamiento normal (redirección a la página de éxito)
-        super.onAuthenticationSuccess(request, response, authentication);
+    public void onAuthenticationSuccess(HttpServletRequest request,
+                                        HttpServletResponse response,
+                                        Authentication authentication)
+                                        throws IOException, ServletException {
+        // Generar el JWT
+        String jwt = jwtUtils.generateJwtToken(authentication);
+
+        // Crear y añadir la cookie accesible desde JS
+        Cookie cookie = new Cookie("jwt_token", jwt);
+        cookie.setPath("/");
+        cookie.setMaxAge(60 * 60 * 24); // 1 día
+        cookie.setHttpOnly(false);
+        response.addCookie(cookie);
+
+        response.sendRedirect("/index");
     }
 }

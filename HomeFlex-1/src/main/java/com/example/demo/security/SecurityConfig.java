@@ -39,6 +39,12 @@ public class SecurityConfig {
     @Autowired
     private UserDetailsService userDetailsService;
 
+    @Autowired
+    private JwtAuthenticationFilter jwtAuthenticationFilter;
+
+    @Autowired
+    private JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
+
     /**
      * Ignora rutas estáticas para que no pasen por los filtros de seguridad.
      */
@@ -56,7 +62,7 @@ public class SecurityConfig {
 
     @Bean
     public PasswordEncoder passwordEncoder() {
-        // Using Argon2 which is more secure than BCrypt
+        // Argon2 es más seguro que BCrypt
         return new Argon2PasswordEncoder(16, 32, 1, 65536, 3);
     }
 
@@ -68,24 +74,47 @@ public class SecurityConfig {
         return authProvider;
     }
 
+    /**
+     * Necesario para inyectar en JwtAuthenticationFilter (si lo usas manualmente).
+     */
     @Bean
     public AuthenticationManager authenticationManager() {
         return new ProviderManager(Collections.singletonList(authenticationProvider()));
     }
 
+    /**
+     * Cadena de seguridad para la API REST (/api/**).
+     * Stateless, sin form-login, devuelve 401 vía JwtAuthenticationEntryPoint.
+     */
+    @Configuration
+    @Order(1)
+    public class ApiSecurityConfig {
+        @Bean
+        public SecurityFilterChain apiSecurityFilterChain(HttpSecurity http) throws Exception {
+            http
+                .securityMatcher("/api/**")
+                .csrf(AbstractHttpConfigurer::disable)
+                .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authorizeHttpRequests(auth -> auth
+                    .requestMatchers("/loginPEE").permitAll()
+                    .anyRequest().authenticated()
+                )
+                .exceptionHandling(ex -> ex.authenticationEntryPoint(jwtAuthenticationEntryPoint))
+                .authenticationProvider(authenticationProvider())
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                .formLogin(AbstractHttpConfigurer::disable)
+                .httpBasic(AbstractHttpConfigurer::disable);
+
+            return http.build();
+        }
+    }
+
+    /**
+     * Cadena de seguridad para el frontend Thymeleaf (form-login clásico).
+     */
     @Configuration
     @Order(2)
-    public static class WebSecurityConfig {
-
-        @Autowired
-        private CustomAuthenticationFailureHandler authenticationFailureHandler;
-
-        @Autowired
-        private CustomAuthenticationSuccessHandler authenticationSuccessHandler;
-
-        @Autowired
-        private DaoAuthenticationProvider authenticationProvider;
-
+    public class WebSecurityConfig {
         @Bean
         public SecurityFilterChain webSecurityFilterChain(HttpSecurity http) throws Exception {
             http
@@ -93,18 +122,15 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                     .requestMatchers(
                         "/", "/index", "/login", "/login?error", "/login?logout",
-                        "/registro", "/activar", "/cuenta-eliminada",
-                        "/css/**", "/js/**", "/images/**", "/favicon.ico"
+                        "/registro", "/activar", "/cuenta-eliminada"
                     ).permitAll()
                     .anyRequest().authenticated()
                 )
                 .formLogin(form -> form
                     .loginPage("/login")
                     .loginProcessingUrl("/login")
-                    .failureUrl("/login?error=true")
-                    .successHandler(authenticationSuccessHandler)
                     .failureHandler(authenticationFailureHandler)
-                    .defaultSuccessUrl("/index", true)
+                    .successHandler(authenticationSuccessHandler)
                     .permitAll()
                 )
                 .logout(logout -> logout
@@ -114,42 +140,7 @@ public class SecurityConfig {
                     .deleteCookies("JSESSIONID", "jwt_token")
                     .permitAll()
                 )
-                .authenticationProvider(authenticationProvider);
-
-            return http.build();
-        }
-    }
-
-    @Configuration
-    @Order(1)
-    public static class ApiSecurityConfig {
-
-        @Autowired
-        private JwtAuthenticationFilter jwtAuthenticationFilter;
-
-        @Autowired
-        private JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
-
-        @Autowired
-        private DaoAuthenticationProvider authenticationProvider;
-
-        @Bean
-        public SecurityFilterChain apiSecurityFilterChain(HttpSecurity http) throws Exception {
-            http
-                .securityMatcher("/api/**")
-                .csrf(AbstractHttpConfigurer::disable)
-                .authorizeHttpRequests(authorize -> authorize
-                    .requestMatchers("/api/auth/**", "/api/chatbot/ask").permitAll()
-                    .anyRequest().authenticated()
-                )
-                .sessionManagement(session -> session
-                    .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-                )
-                .exceptionHandling(exceptions -> exceptions
-                    .authenticationEntryPoint(jwtAuthenticationEntryPoint)
-                )
-                .authenticationProvider(authenticationProvider)
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+                .authenticationProvider(authenticationProvider());
 
             return http.build();
         }
