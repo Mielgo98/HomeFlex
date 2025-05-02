@@ -1,0 +1,384 @@
+.mensajes-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+/* Lista de conversaciones */
+.conversaciones-lista {
+    background-color: #f8f9fa;
+    border-radius: 10px;
+    padding: 15px;
+    margin-bottom: 20px;
+    max-height: 700px;
+    overflow-y: auto;
+}
+
+.conversacion-item {
+    display: flex;
+    align-items: center;
+    padding: 15px;
+    border-radius: 10px;
+    margin-bottom: 10px;
+    background-color: #fff;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.conversacion-item:hover {
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    transform: translateY(-2px);
+}
+
+.conversacion-item.active {
+    background-color: #e2f3ff;
+}
+
+.conversacion-avatar {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    margin-right: 15px;
+    object-fit: cover;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.conversacion-info {
+    flex: 1;
+}
+
+.conversacion-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 5px;
+}
+
+.conversacion-nombre {
+    font-weight: bold;
+    color: #212529;
+}
+
+.conversacion-fecha {
+    font-size: 0.85rem;
+    color: #6c757d;
+}
+
+.conversacion-mensaje {
+    color: #6c757d;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 300px;
+}
+
+.conversacion-badge {
+    background-color: #007bff;
+    color: white;
+    border-radius: 50%;
+    min-width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    margin-left: 10px;
+}
+
+/* Chat principal */
+.mensajes-chat {
+    background-color: #f0f2f5;
+    border-radius: 10px;
+    height: 700px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.chat-header {
+    display: flex;
+    align-items: center;
+    padding: 15px;
+    background-color: #fff;
+    border-bottom: 1px solid #e9ecef;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    z-index: 10;
+}
+
+.chat-header-info {
+    margin-left: 15px;
+}
+
+.chat-nombre {
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.chat-propiedad {
+    font-size: 0.85rem;
+    color: #6c757d;
+}
+
+/* Estilos para el contenedor principal */
+.chat-messages {
+    background-color: #e5ddd5;
+    padding: 20px;
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Mejoras en los mensajes para estilo WhatsApp */
+.mensaje {
+    max-width: 70%;
+    padding: 8px 12px;
+    margin-bottom: 8px;
+    border-radius: 7.5px;
+    position: relative;
+    box-shadow: 0 1px 0.5px rgba(0, 0, 0, 0.13);
+    word-wrap: break-word;
+    font-size: 14.2px;
+    line-height: 19px;
+    clear: both;
+    display: block;
+}
+
+.mensaje::after {
+    content: "";
+    display: table;
+    clear: both;
+}
+
+.mensaje-recibido {
+    background-color: white;
+    align-self: flex-start !important;
+    border-top-left-radius: 0px;
+    margin-right: auto !important;
+    margin-left: 0 !important;
+    float: left !important;
+}
+
+/* Triángulo del mensaje recibido */
+.mensaje-recibido:before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: -8px;
+    width: 0;
+    height: 0;
+    border-top: 8px solid white;
+    border-left: 8px solid transparent;
+}
+
+.mensaje-enviado {
+    background-color: #dcf8c6;
+    align-self: flex-end !important;
+    border-top-right-radius: 0px;
+    margin-left: auto !important;
+    margin-right: 0 !important;
+    float: right !important;
+}
+
+/* Triángulo del mensaje enviado */
+.mensaje-enviado:before {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: -8px;
+    width: 0;
+    height: 0;
+    border-top: 8px solid #dcf8c6;
+    border-right: 8px solid transparent;
+}
+
+/* Mejoras para las fechas */
+.mensaje-fecha {
+    font-size: 11px;
+    color: rgba(0, 0, 0, 0.45);
+    text-align: right;
+    margin-top: 2px;
+    margin-left: 4px;
+    float: right;
+    line-height: 15px;
+    clear: both;
+}
+
+/* Contenido del mensaje */
+.mensaje-contenido {
+    display: inline;
+}
+
+/* Separador de fechas al estilo WhatsApp */
+.fecha-separador {
+    text-align: center;
+    margin: 15px 0;
+    position: relative;
+    width: 100%;
+    clear: both;
+}
+
+.fecha-separador span {
+    background-color: #e1f3fb;
+    color: #54656f;
+    font-size: 12.5px;
+    padding: 5px 12px;
+    border-radius: 7.5px;
+    box-shadow: 0 1px 0.5px rgba(0, 0, 0, 0.13);
+    position: relative;
+}
+
+/* Estilos para imágenes */
+.mensaje-imagen img {
+    max-width: 100%;
+    max-height: 300px;
+    border-radius: 7.5px;
+    cursor: pointer;
+    display: block;
+}
+
+.mensaje-imagen.mensaje-enviado {
+    background-color: #dcf8c6;
+    padding: 3px;
+    float: right !important;
+    clear: both;
+}
+
+.mensaje-imagen.mensaje-recibido {
+    background-color: white;
+    padding: 3px;
+    float: left !important;
+    clear: both;
+}
+
+/* Estilos para el banner de cifrado */
+.mensaje-cifrado {
+    background-color: #fdf4c4;
+    color: #54656f;
+    font-size: 12px;
+    line-height: 16px;
+    padding: 5px 12px 5px 12px;
+    margin: 5px auto 10px auto;
+    border-radius: 7.5px;
+    width: 90%;
+    box-shadow: 0 1px 0.5px rgba(0, 0, 0, 0.13);
+    text-align: center;
+    cursor: pointer;
+    clear: both;
+}
+
+.cifrado-contenido {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.mensaje-cifrado i {
+    color: #54656f;
+    font-size: 14px;
+    margin-bottom: 5px;
+}
+
+.chat-input {
+    padding: 15px;
+    background-color: #f8f9fa;
+    border-top: 1px solid #e9ecef;
+}
+
+.chat-input input {
+    padding: 12px 15px;
+    border: 1px solid #ced4da;
+    border-radius: 30px;
+    margin-right: 10px;
+    background-color: #fff;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+
+.chat-input button {
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+
+/* Estado vacío */
+.no-conversacion {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: #6c757d;
+    padding: 30px;
+    text-align: center;
+}
+
+.no-conversacion i {
+    font-size: 64px;
+    margin-bottom: 20px;
+    color: #dee2e6;
+}
+
+.no-conversacion h3 {
+    margin-bottom: 15px;
+    color: #495057;
+}
+
+/* Vista del modal de imagen */
+#image-modal .modal-content {
+    background-color: transparent;
+    border: none;
+}
+
+#image-modal .modal-body {
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#image-modal img {
+    max-width: 100%;
+    max-height: 90vh;
+}
+
+/* Mensaje de carga */
+.mensaje-cargando {
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+}
+
+/* Mejoras responsive */
+@media (max-width: 768px) {
+    .mensaje {
+        max-width: 85%;
+    }
+    
+    .mensajes-chat {
+        height: calc(100vh - 180px);
+    }
+}
+
+/* Hack para garantizar la alineación */
+.chat-messages > .mensaje-recibido {
+    float: left !important;
+    text-align: left !important;
+}
+
+.chat-messages > .mensaje-enviado {
+    float: right !important;
+    text-align: left !important;
+}
+
+/* Para contenedores de mensajes recibidos, especialmente con avatares */
+.mensaje-con-avatar {
+    display: flex;
+    align-items: flex-end;
+    margin-bottom: 5px;
+    width: 100%;
+    clear: both;
+}

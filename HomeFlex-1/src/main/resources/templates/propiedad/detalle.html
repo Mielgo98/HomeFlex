@@ -148,7 +148,8 @@
                                 </p>
                             </div>
                         </div>
-                        <a href="#" class="btn btn-outline-primary btn-sm d-block">Contactar</a>
+                        <a th:href="@{/mensajes/chat(contactoId=${propiedad.propietario.id},propiedadId=${propiedad.id})}" 
+   							class="btn btn-outline-primary btn-sm d-block">Contactar</a>
                     </div>
                 </div>
 

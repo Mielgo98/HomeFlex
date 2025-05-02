@@ -25,6 +25,14 @@
             <a class="nav-link" th:href="@{/propietario/reservas}">Solicitud de reservas</a>
           </li>
           
+          <li class="nav-item" sec:authorize="isAuthenticated()">
+   			<a class="nav-link position-relative" th:href="@{/mensajes/lista}">
+        		<i class="fas fa-comments"></i> Mensajes
+       			 <span id="contador-mensajes" class="badge badge-danger rounded-circle position-absolute d-none" 
+              style="top: 0; right: 0; transform: translate(50%, -50%);">0</span>
+   		 	</a>
+			</li>
+          
           <li class="nav-item">
             <a class="nav-link" th:href="@{/chatbot}">Asistente</a>
           </li>
@@ -56,3 +64,34 @@
     </div>
   </nav>
 </header>
+<!-- Agregar al final del header.html, justo antes del cierre de la etiqueta </div> -->
+<script th:inline="javascript">
+    // Actualizar contador de mensajes no leídos cada minuto
+    document.addEventListener('DOMContentLoaded', function() {
+        function actualizarContadorMensajes() {
+            fetch('/api/mensajes/no-leidos')
+                .then(response => response.json())
+                .then(data => {
+                    const contadorElement = document.getElementById('contador-mensajes');
+                    if (contadorElement) {
+                        const total = data.total;
+                        
+                        if (total > 0) {
+                            contadorElement.textContent = total;
+                            contadorElement.classList.remove('d-none');
+                        } else {
+                            contadorElement.classList.add('d-none');
+                        }
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+        }
+        
+        // Solo ejecutar si el usuario está autenticado
+        const contadorElement = document.getElementById('contador-mensajes');
+        if (contadorElement) {
+            actualizarContadorMensajes();
+            setInterval(actualizarContadorMensajes, 60000); // Cada minuto
+        }
+    });
+</script>

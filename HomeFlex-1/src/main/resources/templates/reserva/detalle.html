@@ -79,7 +79,7 @@
                             <tr>
                                 <th>ID sesión</th>
                                 <th>Monto</th>
-                                <th>Fecha creación</th>
+                                <!-- <th>Fecha creación</th>  Eliminado -->
                                 <th>Estado</th>
                             </tr>
                         </thead>
@@ -87,11 +87,11 @@
                             <tr th:if="${not #lists.isEmpty(pagos)}" th:each="pago : ${pagos}">
                                 <td th:text="${pago.idSesion}">ses_123</td>
                                 <td th:text="${#numbers.formatDecimal(pago.monto,1,'COMMA',2,'POINT')} + ' ' + ${pago.moneda}">0,00 EUR</td>
-                                <td th:text="${#temporals.format(pago.fechaCreacion, 'dd/MM/yyyy HH:mm')}">dd/MM/yyyy HH:mm</td>
+                                <!-- <td th:text="${#temporals.format(pago.fechaCreacion, 'dd/MM/yyyy HH:mm')}">dd/MM/yyyy HH:mm</td>  Eliminado -->
                                 <td th:text="${pago.estado}">PENDIENTE</td>
                             </tr>
                             <tr th:if="${#lists.isEmpty(pagos)}">
-                                <td colspan="4" class="text-center">No hay pagos registrados</td>
+                                <td colspan="3" class="text-center">No hay pagos registrados</td>
                             </tr>
                         </tbody>
                     </table>
