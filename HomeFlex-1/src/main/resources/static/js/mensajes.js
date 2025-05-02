@@ -322,8 +322,7 @@ function cargarConversacion(contactoId, propiedadId) {
         mostrarNotificacion('Error al cargar los mensajes', 'error');
     });
 }
-
-// Función para mostrar los mensajes con estilo WhatsApp - versión mejorada
+// Función para mostrar los mensajes con estilo WhatsApp - versión final
 function mostrarMensajes(mensajes) {
     const chatMessages = document.querySelector('.chat-messages');
     if (!chatMessages) return;
@@ -341,7 +340,7 @@ function mostrarMensajes(mensajes) {
         return;
     }
 
-    // Mostrar el banner de cifrado (como en WhatsApp)
+    // Mostrar el banner de cifrado
     const bannerCifrado = document.createElement('div');
     bannerCifrado.className = 'mensaje-cifrado';
     bannerCifrado.innerHTML = `
@@ -354,76 +353,107 @@ function mostrarMensajes(mensajes) {
     `;
     chatMessages.appendChild(bannerCifrado);
     
-    // Agrupar mensajes por fecha
-    const mensajesPorFecha = {};
+    // Crear un separador de fecha único para 'HOY'
+    const separador = document.createElement('div');
+    separador.className = 'fecha-separador';
+    separador.innerHTML = '<span>HOY</span>';
+    chatMessages.appendChild(separador);
     
+    // Añadir todos los mensajes con la fecha de la DB directamente
     mensajes.forEach(mensaje => {
-        const fecha = new Date(mensaje.fechaEnvio || new Date());
-        const fechaClave = `${fecha.getDate()}-${fecha.getMonth()}-${fecha.getFullYear()}`;
+        // Determinar si el mensaje es propio comparando con el contacto actual
+        const esPropio = contactoActual && (mensaje.receptorId == contactoActual);
         
-        if (!mensajesPorFecha[fechaClave]) {
-            mensajesPorFecha[fechaClave] = [];
+        console.log(`Mensaje ID: ${mensaje.id}, Emisor: ${mensaje.emisorId}, Receptor: ${mensaje.receptorId}, Contacto: ${contactoActual}, ¿Es propio?: ${esPropio}`);
+        
+        // Formatear la hora directamente desde la BD
+        let horaFormateada;
+        try {
+            // Obtenemos la fecha de la base de datos
+            // Extrae directamente de la fecha original en formato 2025-05-02 12:32:59.963
+            if (mensaje.fechaEnvio) {
+                // Verificar el formato de fechaEnvio
+                console.log(`Tipo de fechaEnvio para mensaje ID ${mensaje.id}:`, typeof mensaje.fechaEnvio);
+                
+                if (Array.isArray(mensaje.fechaEnvio)) {
+                    // Si es un array [año, mes, día, hora, minuto, segundo, ms]
+                    // Usar las posiciones 3 y 4 que corresponden a hora y minuto
+                    let hora = parseInt(mensaje.fechaEnvio[3]);
+                    const minuto = String(mensaje.fechaEnvio[4]).padStart(2, '0');
+                    
+                    // Convertir a formato 12h con AM/PM
+                    const ampm = hora >= 12 ? 'p.m.' : 'a.m.';
+                    hora = hora % 12;
+                    hora = hora ? hora : 12; // 0 -> 12
+                    
+                    horaFormateada = `${hora}:${minuto} ${ampm}`;
+                } else if (typeof mensaje.fechaEnvio === 'string') {
+                    // Si es un string como "2025-05-02 12:32:59.963"
+                    const partes = mensaje.fechaEnvio.split(' ');
+                    if (partes.length === 2) {
+                        const horaParts = partes[1].split(':');
+                        if (horaParts.length >= 2) {
+                            let hora = parseInt(horaParts[0]);
+                            const minuto = horaParts[1];
+                            
+                            // Convertir a formato 12h con AM/PM
+                            const ampm = hora >= 12 ? 'p.m.' : 'a.m.';
+                            hora = hora % 12;
+                            hora = hora ? hora : 12; // 0 -> 12
+                            
+                            horaFormateada = `${hora}:${minuto} ${ampm}`;
+                        } else {
+                            horaFormateada = "12:00 p.m.";
+                        }
+                    } else {
+                        horaFormateada = "12:00 p.m.";
+                    }
+                } else {
+                    // Si es un objeto Date o cualquier otro formato
+                    const fecha = new Date(mensaje.fechaEnvio);
+                    if (!isNaN(fecha.getTime())) {
+                        let horas = fecha.getHours();
+                        const minutos = fecha.getMinutes().toString().padStart(2, '0');
+                        const ampm = horas >= 12 ? 'p.m.' : 'a.m.';
+                        horas = horas % 12;
+                        horas = horas ? horas : 12; // 0 -> 12
+                        
+                        horaFormateada = `${horas}:${minutos} ${ampm}`;
+                    } else {
+                        horaFormateada = "12:00 p.m.";
+                    }
+                }
+            } else {
+                horaFormateada = "12:00 p.m.";
+            }
+        } catch (error) {
+            console.error(`Error al formatear hora para mensaje ID ${mensaje.id}:`, error);
+            horaFormateada = "12:00 p.m.";
         }
         
-        mensajesPorFecha[fechaClave].push(mensaje);
-    });
-    
-    // Iterar sobre las fechas ordenadas
-    const fechasOrdenadas = Object.keys(mensajesPorFecha).sort((a, b) => {
-        const [diaA, mesA, anioA] = a.split('-').map(Number);
-        const [diaB, mesB, anioB] = b.split('-').map(Number);
+        console.log(`Mensaje ID: ${mensaje.id}, Hora original:`, mensaje.fechaEnvio, `Hora formateada: ${horaFormateada}`);
         
-        const fechaA = new Date(anioA, mesA, diaA);
-        const fechaB = new Date(anioB, mesB, diaB);
+        const elemento = document.createElement('div');
+        elemento.className = `mensaje ${esPropio ? 'mensaje-enviado' : 'mensaje-recibido'}`;
+        elemento.dataset.id = mensaje.id || '';
+        elemento.dataset.emisor = mensaje.emisorId; // Guardar el emisor para referencia
         
-        return fechaA - fechaB;
-    });
-    
-    fechasOrdenadas.forEach(fechaClave => {
-        // Añadir separador de fecha
-        const [dia, mes, anio] = fechaClave.split('-').map(Number);
-        const fechaObj = new Date(anio, mes, dia);
+        // Mostrar el mensaje según su tipo
+        if (mensaje.tipoMensaje === 'imagen') {
+            elemento.classList.add('mensaje-imagen');
+            elemento.innerHTML = `
+                <img src="${mensaje.urlRecurso}" alt="Imagen compartida">
+                <div class="mensaje-fecha">${horaFormateada}</div>
+            `;
+        } else {
+            // Mensaje de texto por defecto
+            elemento.innerHTML = `
+                <div class="mensaje-contenido">${mensaje.contenido}</div>
+                <div class="mensaje-fecha">${horaFormateada}</div>
+            `;
+        }
         
-        const separador = document.createElement('div');
-        separador.className = 'fecha-separador';
-        separador.innerHTML = `<span>${formatearFechaGrupo(fechaObj)}</span>`;
-        chatMessages.appendChild(separador);
-        
-        // Añadir mensajes de esta fecha
-        mensajesPorFecha[fechaClave].forEach(mensaje => {
-            // IMPORTANTE: Asegurarnos de que emisorId y usuarioActual sean strings para comparación
-            const emisorId = String(mensaje.emisorId || '');
-            const usuarioId = String(usuarioActual || '');
-            
-            console.log(`Mensaje ID: ${mensaje.id}, Emisor: ${emisorId}, Usuario actual: ${usuarioId}, ¿Es propio?: ${emisorId === usuarioId}`);
-            
-            // Verificar si el mensaje es propio del usuario actual
-            const esPropio = emisorId === usuarioId;
-            
-            const fechaFormateada = formatearFecha(mensaje.fechaEnvio);
-            
-            const elemento = document.createElement('div');
-            elemento.className = `mensaje ${esPropio ? 'mensaje-enviado' : 'mensaje-recibido'}`;
-            elemento.dataset.id = mensaje.id || '';
-            elemento.dataset.emisor = emisorId; // Guardar el emisor para referencia
-            
-            // Mostrar el mensaje según su tipo
-            if (mensaje.tipoMensaje === 'imagen') {
-                elemento.classList.add('mensaje-imagen');
-                elemento.innerHTML = `
-                    <img src="${mensaje.urlRecurso}" alt="Imagen compartida">
-                    <div class="mensaje-fecha">${fechaFormateada}</div>
-                `;
-            } else {
-                // Mensaje de texto por defecto
-                elemento.innerHTML = `
-                    <div class="mensaje-contenido">${mensaje.contenido}</div>
-                    <div class="mensaje-fecha">${fechaFormateada}</div>
-                `;
-            }
-            
-            chatMessages.appendChild(elemento);
-        });
+        chatMessages.appendChild(elemento);
     });
     
     // Desplazarse al último mensaje
@@ -432,52 +462,67 @@ function mostrarMensajes(mensajes) {
 
 // Función auxiliar para formatear las fechas de los grupos
 function formatearFechaGrupo(fecha) {
-    const ahora = new Date();
-    const ayer = new Date();
-    ayer.setDate(ahora.getDate() - 1);
-    
-    if (fecha.toDateString() === ahora.toDateString()) {
-        return 'HOY';
+    // Verificar que la fecha es válida
+    if (!fecha || isNaN(fecha.getTime())) {
+        console.warn("Fecha inválida en formatearFechaGrupo:", fecha);
+        return "HOY"; // Usar HOY como fallback
     }
     
-    if (fecha.toDateString() === ayer.toDateString()) {
-        return 'AYER';
+    try {
+        const ahora = new Date();
+        const ayer = new Date();
+        ayer.setDate(ahora.getDate() - 1);
+        
+        if (fecha.toDateString() === ahora.toDateString()) {
+            return 'HOY';
+        }
+        
+        if (fecha.toDateString() === ayer.toDateString()) {
+            return 'AYER';
+        }
+        
+        const dia = fecha.getDate();
+        const meses = ['ENERO', 'FEBRERO', 'MARZO', 'ABRIL', 'MAYO', 'JUNIO', 'JULIO', 'AGOSTO', 'SEPTIEMBRE', 'OCTUBRE', 'NOVIEMBRE', 'DICIEMBRE'];
+        const mes = meses[fecha.getMonth()];
+        const anio = fecha.getFullYear();
+        
+        return `${dia} DE ${mes} DE ${anio}`;
+    } catch (error) {
+        console.error("Error en formatearFechaGrupo:", error);
+        return "HOY"; // Usar HOY como fallback
     }
-    
-    const dia = fecha.getDate();
-    const meses = ['ENERO', 'FEBRERO', 'MARZO', 'ABRIL', 'MAYO', 'JUNIO', 'JULIO', 'AGOSTO', 'SEPTIEMBRE', 'OCTUBRE', 'NOVIEMBRE', 'DICIEMBRE'];
-    const mes = meses[fecha.getMonth()];
-    const anio = fecha.getFullYear();
-    
-    return `${dia} DE ${mes} DE ${anio}`;
 }
 
 // Función mejorada para formatear fechas al estilo WhatsApp
-function formatearFecha(fechaStr) {
+function formatearFecha(fechaInput) {
     // Verificar si la fecha es válida
-    if (!fechaStr) {
+    if (!fechaInput) {
         // Obtener fecha actual si no hay fecha
         const ahora = new Date();
         return formatearFechaObj(ahora);
     }
     
-    // Convertir a objeto Date
+    // Si ya es un objeto Date, usarlo directamente
     let fecha;
-    try {
-        fecha = new Date(fechaStr);
-        
-        // Verificar si la fecha resultante es válida
-        if (isNaN(fecha.getTime())) {
-            console.log("Fecha inválida después de conversión:", fechaStr);
+    if (fechaInput instanceof Date) {
+        fecha = fechaInput;
+    } else {
+        try {
+            fecha = new Date(fechaInput);
+            
+            // Verificar si la fecha resultante es válida
+            if (isNaN(fecha.getTime())) {
+                console.log("Fecha inválida después de conversión:", fechaInput);
+                // Usar fecha actual como fallback
+                const ahora = new Date();
+                return formatearFechaObj(ahora);
+            }
+        } catch (error) {
+            console.error("Error al convertir fecha:", error);
             // Usar fecha actual como fallback
             const ahora = new Date();
             return formatearFechaObj(ahora);
         }
-    } catch (error) {
-        console.error("Error al convertir fecha:", error);
-        // Usar fecha actual como fallback
-        const ahora = new Date();
-        return formatearFechaObj(ahora);
     }
     
     return formatearFechaObj(fecha);
@@ -493,10 +538,17 @@ function formatearFechaObj(fecha) {
         // Formatear hora en formato 12h con AM/PM
         let horas = fecha.getHours();
         const minutos = fecha.getMinutes().toString().padStart(2, '0');
+        // Opcional: también puedes añadir los segundos si lo deseas
+        // const segundos = fecha.getSeconds().toString().padStart(2, '0');
         const ampm = horas >= 12 ? 'p.m.' : 'a.m.';
         horas = horas % 12;
         horas = horas ? horas : 12; // la hora '0' debe ser '12'
+        
+        // Usar este formato para incluir minutos exactos
         const horaFormateada = `${horas}:${minutos} ${ampm}`;
+        
+        // Si quieres incluir segundos, usa esta línea en su lugar
+        // const horaFormateada = `${horas}:${minutos}:${segundos} ${ampm}`;
         
         // Si es hoy
         if (fecha.toDateString() === ahora.toDateString()) {
@@ -519,7 +571,6 @@ function formatearFechaObj(fecha) {
         return "Ahora"; // fallback
     }
 }
-
 // Enviar un nuevo mensaje de texto
 function enviarMensaje() {
     const token = getCookie('jwt_token');
@@ -790,128 +841,128 @@ function actualizarMensajes() {
                         chatMessages.appendChild(separador);
                     }
                     
-                    // Crear el elemento de mensaje
-                    const elemento = document.createElement('div');
-                    elemento.className = `mensaje ${esPropio ? 'mensaje-enviado' : 'mensaje-recibido'}`;
-                    elemento.dataset.id = mensaje.id || '';
-                    elemento.dataset.emisor = emisorId; // Guardar el emisor para referencia
-                    
-                    // Mostrar el mensaje según su tipo
-                    if (mensaje.tipoMensaje === 'imagen') {
-                        elemento.classList.add('mensaje-imagen');
-                        elemento.innerHTML = `
-                            <img src="${mensaje.urlRecurso}" alt="Imagen compartida">
-                            <div class="mensaje-fecha">${fechaFormateada}</div>
-                        `;
-                    } else {
-                        elemento.innerHTML = `
-                            <div class="mensaje-contenido">${mensaje.contenido}</div>
-                            <div class="mensaje-fecha">${fechaFormateada}</div>
-                        `;
-                    }
-                    
-                    chatMessages.appendChild(elemento);
-                });
-                
-                chatMessages.scrollTop = chatMessages.scrollHeight;
-                ultimoMensajeId = data[data.length - 1].id;
-            }
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-    });
-}
+					// Crear el elemento de mensaje
+					                    const elemento = document.createElement('div');
+					                    elemento.className = `mensaje ${esPropio ? 'mensaje-enviado' : 'mensaje-recibido'}`;
+					                    elemento.dataset.id = mensaje.id || '';
+					                    elemento.dataset.emisor = emisorId; // Guardar el emisor para referencia
+					                    
+					                    // Mostrar el mensaje según su tipo
+					                    if (mensaje.tipoMensaje === 'imagen') {
+					                        elemento.classList.add('mensaje-imagen');
+					                        elemento.innerHTML = `
+					                            <img src="${mensaje.urlRecurso}" alt="Imagen compartida">
+					                            <div class="mensaje-fecha">${fechaFormateada}</div>
+					                        `;
+					                    } else {
+					                        elemento.innerHTML = `
+					                            <div class="mensaje-contenido">${mensaje.contenido}</div>
+					                            <div class="mensaje-fecha">${fechaFormateada}</div>
+					                        `;
+					                    }
+					                    
+					                    chatMessages.appendChild(elemento);
+					                });
+					                
+					                chatMessages.scrollTop = chatMessages.scrollHeight;
+					                ultimoMensajeId = data[data.length - 1].id;
+					            }
+					        }
+					    })
+					    .catch(error => {
+					        console.error('Error:', error);
+					    });
+					}
 
-// Actualizar contador de mensajes no leídos
-function actualizarContadorNoLeidos() {
-    const token = getCookie('jwt_token');
-    
-    fetch('/api/mensajes/no-leidos', {
-        headers: {
-            'Authorization': 'Bearer ' + token,
-            'Accept': 'application/json'
-        }
-    })
-    .then(response => {
-        if (response.status === 401) {
-            // No redirigimos aquí para evitar interrupciones
-            throw new Error('No autorizado');
-        }
-        if (!response.ok) {
-            throw new Error('Error al obtener mensajes no leídos');
-        }
-        return response.json();
-    })
-    .then(data => {
-        const contadorElement = document.getElementById('contador-mensajes');
-        if (contadorElement) {
-            const total = data.total;
-            
-            if (total > 0) {
-                contadorElement.textContent = total;
-                contadorElement.classList.remove('d-none');
-            } else {
-                contadorElement.classList.add('d-none');
-            }
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-    });
-}
+					// Actualizar contador de mensajes no leídos
+					function actualizarContadorNoLeidos() {
+					    const token = getCookie('jwt_token');
+					    
+					    fetch('/api/mensajes/no-leidos', {
+					        headers: {
+					            'Authorization': 'Bearer ' + token,
+					            'Accept': 'application/json'
+					        }
+					    })
+					    .then(response => {
+					        if (response.status === 401) {
+					            // No redirigimos aquí para evitar interrupciones
+					            throw new Error('No autorizado');
+					        }
+					        if (!response.ok) {
+					            throw new Error('Error al obtener mensajes no leídos');
+					        }
+					        return response.json();
+					    })
+					    .then(data => {
+					        const contadorElement = document.getElementById('contador-mensajes');
+					        if (contadorElement) {
+					            const total = data.total;
+					            
+					            if (total > 0) {
+					                contadorElement.textContent = total;
+					                contadorElement.classList.remove('d-none');
+					            } else {
+					                contadorElement.classList.add('d-none');
+					            }
+					        }
+					    })
+					    .catch(error => {
+					        console.error('Error:', error);
+					    });
+					}
 
-// Mostrar notificación
-function mostrarNotificacion(mensaje, tipo = 'success') {
-    // Si existe SweetAlert2
-    if (typeof Swal !== 'undefined') {
-        Swal.fire({
-            title: tipo === 'error' ? 'Error' : 'Éxito',
-            text: mensaje,
-            icon: tipo,
-            toast: true,
-            position: 'top-end',
-            showConfirmButton: false,
-            timer: 3000
-        });
-    } else if (typeof toastr !== 'undefined') {
-        // Si existe Toastr
-        toastr[tipo](mensaje);
-    } else {
-        // Fallback a alert
-        alert(mensaje);
-    }
-}
+					// Mostrar notificación
+					function mostrarNotificacion(mensaje, tipo = 'success') {
+					    // Si existe SweetAlert2
+					    if (typeof Swal !== 'undefined') {
+					        Swal.fire({
+					            title: tipo === 'error' ? 'Error' : 'Éxito',
+					            text: mensaje,
+					            icon: tipo,
+					            toast: true,
+					            position: 'top-end',
+					            showConfirmButton: false,
+					            timer: 3000
+					        });
+					    } else if (typeof toastr !== 'undefined') {
+					        // Si existe Toastr
+					        toastr[tipo](mensaje);
+					    } else {
+					        // Fallback a alert
+					        alert(mensaje);
+					    }
+					}
 
-// Modal para ampliación de imágenes
-function agregarModalImagenes() {
-    // Verificar si ya existe
-    if (document.getElementById('image-modal')) return;
-    
-    // Crear modal para visualizar imágenes ampliadas
-    const modal = document.createElement('div');
-    modal.id = 'image-modal';
-    modal.className = 'modal fade';
-    modal.tabIndex = '-1';
-    modal.setAttribute('aria-hidden', 'true');
-    
-    modal.innerHTML = `
-        <div class="modal-dialog modal-lg modal-dialog-centered">
-            <div class="modal-content bg-transparent border-0">
-                <div class="modal-body p-0 text-center">
-                    <button type="button" class="close position-absolute" style="top: 15px; right: 15px; color: white; font-size: 30px; text-shadow: 0 0 5px rgba(0,0,0,0.5);" data-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                    <img src="" class="img-fluid rounded" style="max-height: 90vh;" alt="Imagen ampliada">
-                </div>
-            </div>
-        </div>
-    `;
-    
-    document.body.appendChild(modal);
-}
+					// Modal para ampliación de imágenes
+					function agregarModalImagenes() {
+					    // Verificar si ya existe
+					    if (document.getElementById('image-modal')) return;
+					    
+					    // Crear modal para visualizar imágenes ampliadas
+					    const modal = document.createElement('div');
+					    modal.id = 'image-modal';
+					    modal.className = 'modal fade';
+					    modal.tabIndex = '-1';
+					    modal.setAttribute('aria-hidden', 'true');
+					    
+					    modal.innerHTML = `
+					        <div class="modal-dialog modal-lg modal-dialog-centered">
+					            <div class="modal-content bg-transparent border-0">
+					                <div class="modal-body p-0 text-center">
+					                    <button type="button" class="close position-absolute" style="top: 15px; right: 15px; color: white; font-size: 30px; text-shadow: 0 0 5px rgba(0,0,0,0.5);" data-dismiss="modal" aria-label="Close">
+					                        <span aria-hidden="true">&times;</span>
+					                    </button>
+					                    <img src="" class="img-fluid rounded" style="max-height: 90vh;" alt="Imagen ampliada">
+					                </div>
+					            </div>
+					        </div>
+					    `;
+					    
+					    document.body.appendChild(modal);
+					}
 
-// Al cargar la página, añadir el modal para imágenes
-document.addEventListener('DOMContentLoaded', function() {
-    agregarModalImagenes();
-});
+					// Al cargar la página, añadir el modal para imágenes
+					document.addEventListener('DOMContentLoaded', function() {
+					    agregarModalImagenes();
+					});
