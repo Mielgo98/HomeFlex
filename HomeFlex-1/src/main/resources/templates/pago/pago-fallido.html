@@ -1,25 +1,84 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
-  <head th:replace="fragments/head :: head('Pago Fallido')"></head>
-  <body>
-    <div th:replace="fragments/header :: header"></div>
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
+<head th:replace="~{fragments/head :: head('Pago Fallido - HomeFlex')}">
+    <title>Pago Fallido - HomeFlex</title>
+</head>
+<body>
+    <header th:replace="~{fragments/header :: header}"></header>
 
-    <main class="container">
-      <h1>Lo Sentimos, el Pago Falló</h1>
+    <main class="container my-5">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="card shadow border-danger">
+                    <div class="card-header bg-danger text-white">
+                        <h3 class="mb-0">El pago no ha podido completarse</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="text-center mb-4">
+                            <i class="bi bi-exclamation-triangle-fill text-danger" style="font-size: 5rem;"></i>
+                            <h4 class="mt-3">Ha ocurrido un problema al procesar tu pago</h4>
+                        </div>
 
-      <p>ID de Sesión: <strong th:text="${pago.sessionId}">sess_...</strong></p>
-      <p>Reserva ID: <strong th:text="${reserva.id}">123</strong></p>
-      <p>Error: <span th:text="${errorPago}">Detalle del error</span></p>
+                        <div class="alert alert-danger" th:if="${errorPago != null}">
+                            <p class="mb-0"><strong>Motivo:</strong> <span th:text="${errorPago}">Error desconocido</span></p>
+                        </div>
+                        <div class="alert alert-danger" th:if="${errorPago == null}">
+                            <p class="mb-0">No se pudo completar la transacción. Por favor, intenta nuevamente o utiliza otro método de pago.</p>
+                        </div>
 
-      <a th:href="@{/pago/formulario(reservaId=${reserva.id},idSesion=${pago.sessionId})}"
-         class="btn btn-warning mt-3">
-        Reintentar Pago
-      </a>
-      <a th:href="@{/reservas/mis-reservas}" class="btn btn-secondary mt-3">
-        Volver a Mis Reservas
-      </a>
+                        <div class="mb-4">
+                            <h5>Detalles de la Reserva</h5>
+                            <hr>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <p><strong>Propiedad:</strong> <span th:text="${reserva.tituloPropiedad}">Título de la propiedad</span></p>
+                                    <p><strong>Fechas:</strong> <span th:text="${#temporals.format(reserva.fechaInicio, 'dd/MM/yyyy')} + ' a ' + ${#temporals.format(reserva.fechaFin, 'dd/MM/yyyy')}">01/01/2025 a 05/01/2025</span></p>
+                                    <p><strong>Código de Reserva:</strong> <span th:text="${reserva.codigoReserva}">ABC123</span></p>
+                                </div>
+                                <div class="col-md-6">
+                                    <p><strong>Importe a pagar:</strong> <span th:text="${#numbers.formatDecimal(pago.monto,1,'COMMA',2,'POINT')} + ' ' + ${pago.moneda}">0,00 €</span></p>
+                                    <p><strong>Estado actual:</strong> <span class="badge bg-danger">Fallido</span></p>
+                                    <p><strong>ID de Transacción:</strong> <span th:text="${pago.sessionId}">session_12345</span></p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <h5>Posibles soluciones</h5>
+                            <hr>
+                            <ul class="list-group list-group-flush">
+                                <li class="list-group-item">
+                                    <i class="bi bi-credit-card me-2"></i>
+                                    Verifica que los datos de tu tarjeta sean correctos
+                                </li>
+                                <li class="list-group-item">
+                                    <i class="bi bi-currency-euro me-2"></i>
+                                    Comprueba que tu tarjeta tiene fondos suficientes
+                                </li>
+                                <li class="list-group-item">
+                                    <i class="bi bi-bank me-2"></i>
+                                    Contacta con tu banco si el problema persiste
+                                </li>
+                            </ul>
+                        </div>
+
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-center mt-4">
+                            <a th:href="@{'/pago/formulario?reservaId=' + ${reserva.id} + '&idSesion=' + ${pago.sessionId}}" class="btn btn-primary me-md-2">
+                                <i class="bi bi-arrow-repeat me-1"></i> Intentar con formulario
+                            </a>
+                            <a th:href="@{'/pago/iniciar?reservaId=' + ${reserva.id}}" class="btn btn-success me-md-2">
+                                <i class="bi bi-credit-card-fill me-1"></i> Pago directo
+                            </a>
+                            <a th:href="@{/reservas/{id}(id=${reserva.id})}" class="btn btn-outline-secondary">
+                                <i class="bi bi-arrow-left me-1"></i> Volver a la reserva
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </main>
 
-    <div th:replace="fragments/footer :: footer"></div>
-  </body>
+    <footer th:replace="~{fragments/footer :: footer}"></footer>
+</body>
 </html>

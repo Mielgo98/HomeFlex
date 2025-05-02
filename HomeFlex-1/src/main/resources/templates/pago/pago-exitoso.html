@@ -1,22 +1,78 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
-  <head th:replace="fragments/head :: head('Pago Exitoso')"></head>
-  <body>
-    <div th:replace="fragments/header :: header"></div>
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
+<head th:replace="~{fragments/head :: head('Pago Exitoso - HomeFlex')}">
+    <title>Pago Exitoso - HomeFlex</title>
+</head>
+<body>
+    <header th:replace="~{fragments/header :: header}"></header>
 
-    <main class="container">
-      <h1>¡Pago Realizado con Éxito!</h1>
+    <main class="container my-5">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="card shadow border-success">
+                    <div class="card-header bg-success text-white">
+                        <h3 class="mb-0">¡Pago Completado con Éxito!</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="text-center mb-4">
+                            <i class="bi bi-check-circle-fill text-success" style="font-size: 5rem;"></i>
+                            <h4 class="mt-3">Tu pago ha sido procesado correctamente</h4>
+                        </div>
 
-      <p>ID de Sesión: <strong th:text="${pago.sessionId}">sess_...</strong></p>
-      <p>Reserva ID: <strong th:text="${reserva.id}">123</strong></p>
-      <p>Monto: <strong th:text="${pago.monto}"></strong> <span th:text="${pago.moneda}"></span></p>
-      <p>Estado: <strong th:text="${pago.estado}"></strong></p>
+                        <div class="alert alert-success">
+                            <p class="mb-0">Se ha enviado un comprobante a tu dirección de correo electrónico.</p>
+                        </div>
 
-      <a th:href="@{/reservas/mis-reservas}" class="btn btn-success mt-3">
-        Volver a Mis Reservas
-      </a>
+                        <div class="mb-4">
+                            <h5>Detalles de la Reserva</h5>
+                            <hr>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <p><strong>Propiedad:</strong> <span th:text="${reserva.tituloPropiedad}">Título de la propiedad</span></p>
+                                    <p><strong>Fechas:</strong> <span th:text="${#temporals.format(reserva.fechaInicio, 'dd/MM/yyyy')} + ' a ' + ${#temporals.format(reserva.fechaFin, 'dd/MM/yyyy')}">01/01/2025 a 05/01/2025</span></p>
+                                    <p><strong>Código de Reserva:</strong> <span th:text="${reserva.codigoReserva}">ABC123</span></p>
+                                </div>
+                                <div class="col-md-6">
+                                    <p><strong>Importe pagado:</strong> <span th:text="${#numbers.formatDecimal(pago.monto,1,'COMMA',2,'POINT')} + ' ' + ${pago.moneda}">0,00 €</span></p>
+                                    <p><strong>Fecha de pago:</strong> <span th:text="${#temporals.format(pago.fechaActualizacion, 'dd/MM/yyyy HH:mm')}">01/01/2025 12:34</span></p>
+                                    <p><strong>ID de Transacción:</strong> <span th:text="${pago.sessionId}">session_12345</span></p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <h5>Próximos pasos</h5>
+                            <hr>
+                            <ul class="list-group list-group-flush">
+                                <li class="list-group-item">
+                                    <i class="bi bi-check-circle-fill text-success me-2"></i>
+                                    Tu reserva ha sido confirmada
+                                </li>
+                                <li class="list-group-item">
+                                    <i class="bi bi-envelope-fill me-2"></i>
+                                    Recibirás un correo con todos los detalles
+                                </li>
+                                <li class="list-group-item">
+                                    <i class="bi bi-house-fill me-2"></i>
+                                    El propietario confirmará los detalles de entrada
+                                </li>
+                            </ul>
+                        </div>
+
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-center mt-4">
+                            <a th:href="@{/reservas/{id}(id=${reserva.id})}" class="btn btn-primary me-md-2">
+                                <i class="bi bi-eye me-1"></i> Ver Detalles de la Reserva
+                            </a>
+                            <a th:href="@{/reservas/mis-reservas}" class="btn btn-outline-secondary">
+                                <i class="bi bi-list me-1"></i> Mis Reservas
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </main>
 
-    <div th:replace="fragments/footer :: footer"></div>
-  </body>
+    <footer th:replace="~{fragments/footer :: footer}"></footer>
+</body>
 </html>

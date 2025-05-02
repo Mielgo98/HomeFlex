@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
+<head th:replace="~{fragments/head :: head('Simulador de Pago - HomeFlex')}">
+    <title>Simulador de Pago - HomeFlex</title>
+    <!-- Incluir SweetAlert2 -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.32/dist/sweetalert2.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.32/dist/sweetalert2.all.min.js"></script>
+</head>
+<body>
+    <header th:replace="~{fragments/header :: header}"></header>
+
+    <main class="container my-5">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="card shadow">
+                    <div class="card-header bg-primary text-white">
+                        <h3 class="mb-0">Simulador de Pago (Entorno de Pruebas)</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle-fill me-2"></i>
+                            Este es un entorno de simulación. No se realizará ningún cargo real a tu tarjeta.
+                        </div>
+
+                        <div class="mb-4">
+                            <h4>Detalles de la Reserva</h4>
+                            <p><strong>Propiedad:</strong> <span th:text="${reserva.tituloPropiedad}">Título de la propiedad</span></p>
+                            <p><strong>Código:</strong> <span th:text="${reserva.codigoReserva}">ABC123</span></p>
+                            <p><strong>Fechas:</strong> <span th:text="${#temporals.format(reserva.fechaInicio, 'dd/MM/yyyy')} + ' a ' + ${#temporals.format(reserva.fechaFin, 'dd/MM/yyyy')}">01/01/2025 a 05/01/2025</span></p>
+                            <p><strong>Importe total:</strong> <span th:text="${#numbers.formatDecimal(pago.monto,1,'COMMA',2,'POINT')} + ' €'">0,00 €</span></p>
+                        </div>
+
+                        <form class="simulator">
+                            <input type="hidden" name="idSesion" th:value="${pago.sessionId}">
+                            
+                            <div class="mb-3">
+                                <label for="cardNumber" class="form-label">Número de tarjeta</label>
+                                <input type="text" class="form-control" id="cardNumber" value="4242 4242 4242 4242" required>
+                                <div class="form-text">Para pruebas, use: 4242 4242 4242 4242</div>
+                                <div class="invalid-feedback">Introduzca un número de tarjeta válido</div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="expDate" class="form-label">Fecha de expiración</label>
+                                    <input type="text" class="form-control" id="expDate" placeholder="MM/AA" value="12/25" required>
+                                    <div class="invalid-feedback">Introduzca una fecha válida</div>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="cvv" class="form-label">CVV</label>
+                                    <input type="text" class="form-control" id="cvv" placeholder="123" value="123" required>
+                                    <div class="invalid-feedback">Introduzca el código de seguridad</div>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="cardName" class="form-label">Nombre en la tarjeta</label>
+                                <input type="text" class="form-control" id="cardName" placeholder="Nombre completo" value="USUARIO PRUEBA" required>
+                                <div class="invalid-feedback">Introduzca el nombre del titular</div>
+                            </div>
+                            
+                            <div class="mb-3 border-top pt-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="saveCardInfo" checked>
+                                    <label class="form-check-label" for="saveCardInfo">
+                                        Guardar información de la tarjeta para futuros pagos
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="payment-icons mt-3 text-center mb-4">
+                                <i class="bi bi-credit-card mx-2 fs-3 text-primary"></i>
+                                <i class="bi bi-credit-card-2-front mx-2 fs-3 text-primary"></i>
+                                <i class="bi bi-credit-card-2-back mx-2 fs-3 text-primary"></i>
+                            </div>
+                            
+                            <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+                                <a th:href="@{'/reservas/' + ${reserva.id}}" class="btn btn-outline-secondary me-md-2">
+                                    <i class="bi bi-arrow-left me-1"></i> Cancelar
+                                </a>
+                                <button type="submit" class="btn btn-success">
+                                    <i class="bi bi-lock-fill me-1"></i> Pagar ahora
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer th:replace="~{fragments/footer :: footer}"></footer>
+    
+    <script th:src="@{/js/reserva.js}" defer></script>
+</body>
+</html>

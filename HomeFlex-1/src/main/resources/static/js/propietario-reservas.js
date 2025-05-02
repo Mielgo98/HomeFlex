@@ -1,4 +1,5 @@
 
+// Obtiene el valor de una cookie
 function getCookie(name) {
   const matches = document.cookie.match(new RegExp(
     "(?:^|; )" +
@@ -8,12 +9,25 @@ function getCookie(name) {
   return matches ? decodeURIComponent(matches[1]) : null;
 }
 
-// --- Carga paginada de reservas ---
-function cargarMisReservas(page = 0, size = 20) {
-  const jwt = getCookie('jwt_token');
-  fetch(`/api/propietario/reservas?page=${page}&size=${size}`, {
-    headers: { 'Authorization': 'Bearer ' + jwt }
-  })
+document.addEventListener('DOMContentLoaded', () => {
+  const token   = getCookie('jwt_token');
+  const cont    = document.getElementById('reservasContainer');
+  const pag     = document.getElementById('paginacionRes');
+  const btnFil  = document.getElementById('btnFiltrarRes');
+
+  let pagina = 0, tamaño = 10;
+
+  // Lanza la petición GET y pinta las reservas
+  function cargar() {
+    const estado = document.getElementById('filtroEstado').value;
+    const busq   = document.getElementById('busquedaRes').value.trim();
+
+    fetch(`/api/reservas/solicitudes?estado=${estado}&busqueda=${encodeURIComponent(busq)}&page=${pagina}&size=${tamaño}`, {
+      headers: {
+        'Authorization': 'Bearer ' + token,
+        'Accept': 'application/json'
+      }
+    })
     .then(res => {
       if (res.status === 401) {
         window.location = '/login';
@@ -21,131 +35,117 @@ function cargarMisReservas(page = 0, size = 20) {
       }
       return res.json();
     })
-    .then(data => renderReservas(data))
-    .catch(err => console.error('Error al cargar reservas:', err));
-}
+    .then(data => {
+      // Renderizado de tarjetas de reserva
+      cont.innerHTML = '';
+      data.content.forEach(r => {
+        const div = document.createElement('div');
+        div.className = 'list-group-item';
+        div.innerHTML = `
+          <div class="d-flex w-100 justify-content-between">
+            <h5 class="mb-1">${r.codigoReserva} – ${r.tituloPropiedad}</h5>
+            <small>${r.estado}</small>
+          </div>
+          <p class="mb-1">${r.fechaInicio} a ${r.fechaFin}</p>
+          <div class="btn-group btn-group-sm">
+            <a href="/propietario/reservas/${r.id}" class="btn btn-outline-info">Ver</a>
+            <button data-id="${r.id}" data-action="aprobar"   class="btn btn-success">Aprobar</button>
+            <button data-id="${r.id}" data-action="rechazar"   class="btn btn-danger">Rechazar</button>
+            <button data-id="${r.id}" data-action="confirmar"  class="btn btn-primary">Confirmar</button>
+            <button data-id="${r.id}" data-action="cancelar"   class="btn btn-secondary">Cancelar</button>
+          </div>`;
+        cont.append(div);
+      });
 
-// --- Renderizado dinámico según estado ---
-function renderReservas(page) {
-  const container = document.getElementById('reservas-container');
-  if (!container) return console.error('Falta #reservas-container');
-  container.innerHTML = '';
-
-  page.content.forEach(res => {
-    const div = document.createElement('div');
-    div.className = 'reserva-item mb-3 p-3 border rounded';
-    div.innerHTML = `
-      <div class="d-flex justify-content-between align-items-center">
-        <div>
-          <strong>${res.codigo}</strong> — ${res.propiedad.titulo}<br>
-          <small>${res.fechaInicio} a ${res.fechaFin}</small>
-        </div>
-        <span class="badge bg-secondary">${res.estado}</span>
-      </div>
-      <div class="mt-2 acciones"></div>
-    `;
-
-    const acciones = div.querySelector('.acciones');
-    switch (res.estado) {
-      case 'PENDIENTE_PAGO':
-        acciones.innerHTML = `
-          <button class="btn btn-success btn-aprobar me-1" data-id="${res.id}">Aprobar</button>
-          <button class="btn btn-danger btn-rechazar" data-id="${res.id}">Rechazar</button>
-        `;
-        break;
-      case 'APROBADA':
-        acciones.innerHTML = `
-          <button class="btn btn-primary btn-confirmar me-1" data-id="${res.id}">Confirmar</button>
-          <button class="btn btn-secondary btn-cancelar" data-id="${res.id}">Cancelar</button>
-        `;
-        break;
-      default:
-        acciones.innerHTML = `
-          <button class="btn btn-info btn-ver" data-id="${res.id}">Ver</button>
-        `;
-    }
-
-    container.appendChild(div);
-  });
-}
-
-// --- Delegación de eventos para acciones ---
-document.getElementById('reservas-container')
-  .addEventListener('click', evt => {
-    const btn = evt.target;
-    const id  = btn.dataset.id;
-    if (!id) return;
-
-    if (btn.matches('.btn-aprobar')) {
-      modificarEstado(id, 'aprobar');
-    } else if (btn.matches('.btn-rechazar')) {
-      modificarEstado(id, 'rechazar');
-    } else if (btn.matches('.btn-confirmar')) {
-      modificarEstado(id, 'confirmar');
-    } else if (btn.matches('.btn-cancelar')) {
-      modificarEstado(id, 'cancelar');
-    } else if (btn.matches('.btn-ver')) {
-      window.location = `/propietario/reservas/${id}`; // o donde muestres el detalle
-    }
-  });
-
-// --- Función genérica para cambiar estado con SweetAlert ---
-function modificarEstado(id, accion) {
-  const jwt = getCookie('jwt_token');
-  const titles = {
-    aprobar:  ['¿Aprobar reserva?', 'Esta acción confirmará el pago.'],
-    rechazar: ['¿Rechazar reserva?', 'El huésped será notificado.'],
-    confirmar:['¿Confirmar reserva?', 'La estancia quedará definitiva.'],
-    cancelar: ['¿Cancelar reserva?', 'La reserva se marcará como cancelada.']
-  };
-
-  const [title, text] = titles[accion] || ['¿Continuar?', ''];
-
-  Swal.fire({
-    title,
-    text,
-    icon: 'warning',
-    showCancelButton: true,
-    confirmButtonText: 'Sí',
-    cancelButtonText: 'No'
-  }).then(({ isConfirmed }) => {
-    if (!isConfirmed) return;
-
-    fetch(`/api/reservas/${id}/${accion}`, {
-      method: 'POST',
-      headers: {
-        'Authorization': 'Bearer ' + jwt,
-        'Content-Type': 'application/json'
+      // Paginación
+      let html = '';
+      for (let i = 0; i < data.totalPages; i++) {
+        html += `<li class="page-item ${i===pagina?'active':''}">
+                   <a href="#" class="page-link" data-page="${i}">${i+1}</a>
+                 </li>`;
       }
+      pag.innerHTML = `<ul class="pagination justify-content-center">${html}</ul>`;
     })
-      .then(res => {
-        if (res.status === 401) {
-          window.location = '/login';
-          throw new Error('No autorizado');
+    .catch(err => {
+      console.error(err);
+      Swal.fire('Error', 'No se han podido cargar las reservas.', 'error');
+    });
+  }
+
+  // Filtrar
+  btnFil.addEventListener('click', e => {
+    e.preventDefault();
+    pagina = 0;
+    cargar();
+  });
+
+  // Paginación
+  pag.addEventListener('click', e => {
+    if (e.target.matches('.page-link')) {
+      pagina = +e.target.dataset.page;
+      cargar();
+    }
+  });
+
+  // Acciones en delegado
+  cont.addEventListener('click', e => {
+    const btn = e.target;
+    if (!btn.matches('button[data-action]')) return;
+
+    const id  = btn.dataset.id;
+    const act = btn.dataset.action;
+
+    // Configura la confirmación
+    const cfg = {
+      aprobar:   { title:'¿Aprobar solicitud?',   text:'La reserva pasará a PENDIENTE_PAGO.', icon:'warning' },
+      rechazar:  { title:'¿Rechazar solicitud?',  text:'La reserva se cancelará.',        icon:'warning' },
+      confirmar: { title:'¿Confirmar reserva?',   text:'La reserva se confirmará.',       icon:'question' },
+      cancelar:  { title:'¿Cancelar reserva?',    text:'La reserva se marcará como cancelada.', icon:'warning' }
+    }[act];
+
+    Swal.fire({
+      title:            cfg.title,
+      text:             cfg.text,
+      icon:             cfg.icon,
+      showCancelButton: true,
+      confirmButtonText:'Sí',
+      cancelButtonText: 'No'
+    }).then(({ isConfirmed }) => {
+      if (!isConfirmed) return;
+
+      fetch(`/api/reservas/${id}/${act}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer ' + token,
+          'Accept':        'application/json'
         }
-        if (!res.ok) throw new Error('Fallo al ' + accion);
+      })
+      .then(res => {
+        if (!res.ok) throw new Error('Error en la operación');
         return res.json();
       })
       .then(() => {
-        Swal.fire({
-          title: '¡Listo!',
-          text: `Reserva ${accion}da con éxito.`,
-          icon: 'success',
-          timer: 1500,
-          showConfirmButton: false
-        });
-        cargarMisReservas(); // refrescar lista
+        Swal.fire('¡Listo!', 'Operación realizada con éxito.', 'success');
+
+        // **** Aquí ajustamos los botones según la acción ****
+        const btnGroup = btn.closest('.btn-group');
+        if (act === 'aprobar') {
+          // dejar solo "Rechazar"
+          btnGroup.querySelectorAll('button').forEach(b => {
+            if (b.dataset.action !== 'rechazar') b.remove();
+          });
+        } else if (act === 'rechazar' || act === 'cancelar') {
+          // quitar todos los botones
+          btnGroup.innerHTML = '';
+        }
       })
       .catch(err => {
         console.error(err);
-        Swal.fire('Error', err.message, 'error');
+        Swal.fire('Error', 'No se ha podido completar la operación.', 'error');
       });
+    });
   });
-}
 
-// --- Inicialización al cargar la página ---
-document.addEventListener('DOMContentLoaded', () => {
-  if (document.getElementById('reservas-container')) {
-    cargarMisReservas();
-  }
+  // Carga inicial
+  cargar();
 });
