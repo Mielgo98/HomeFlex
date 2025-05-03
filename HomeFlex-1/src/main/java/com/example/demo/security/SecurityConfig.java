@@ -143,6 +143,9 @@ public class SecurityConfig {
     	                .deleteCookies("JSESSIONID", "jwt_token")
     	                .permitAll()
     	            )
+    	            .sessionManagement(sm -> sm
+    	                    .sessionFixation(sessionFixation -> sessionFixation.none())
+    	                )
     	            .authenticationProvider(authenticationProvider())
     	            // ← Aquí añadimos el AuditLogFilter
     	            .addFilterBefore(auditLogFilter, UsernamePasswordAuthenticationFilter.class);
