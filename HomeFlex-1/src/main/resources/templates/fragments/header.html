@@ -1,5 +1,6 @@
 <!-- templates/fragments/header.html -->
 <header th:fragment="header">
+  <!-- SweetAlert2 para modales/confirmaciones -->
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <nav class="navbar navbar-expand-lg navbar-light bg-light">
     <div class="container-fluid">
@@ -9,41 +10,55 @@
       </button>
       <div class="collapse navbar-collapse" id="navbarNav">
         <ul class="navbar-nav me-auto">
+          <!-- Siempre visible -->
           <li class="nav-item">
             <a class="nav-link" th:href="@{/propiedades}">Propiedades</a>
           </li>
+          <!-- Mis Reservas: cualquier usuario autenticado -->
           <li class="nav-item" sec:authorize="isAuthenticated()">
             <a class="nav-link" th:href="@{/reservas/mis-reservas}">Mis Reservas</a>
           </li>
+          <!-- Mis Propiedades & Solicitud de reservas: solo PROPIETARIO -->
           <li class="nav-item" sec:authorize="hasRole('ROLE_PROPIETARIO')">
-            <!-- Apunta a /propietario/propiedades, que es donde tu controlador escucha -->
             <a class="nav-link" th:href="@{/propietario/propiedades}">Mis Propiedades</a>
           </li>
-          
           <li class="nav-item" sec:authorize="hasRole('ROLE_PROPIETARIO')">
-            <!-- Apunta a /propietario/propiedades, que es donde tu controlador escucha -->
             <a class="nav-link" th:href="@{/propietario/reservas}">Solicitud de reservas</a>
           </li>
-          
+          <!-- Admin Dashboard & Usuarios: solo SUPER_ADMIN -->
+          <li class="nav-item" sec:authorize="hasRole('ROLE_SUPER_ADMIN')">
+            <a class="nav-link" th:href="@{/superadmin/dashboard}">Admin Dashboard</a>
+          </li>
+       
+          <!-- Gestión de Usuarios: solo ADMIN -->
+          <li class="nav-item" sec:authorize="hasRole('ROLE_ADMIN')">
+            <a class="nav-link" th:href="@{/administrador/usuarios}">Gestión de Usuarios</a>
+          </li>
+          <!-- Mensajes: cualquier usuario autenticado -->
+          <li class="nav-item position-relative" sec:authorize="isAuthenticated()">
+            <a class="nav-link" th:href="@{/mensajes/lista}">
+              <i class="fas fa-comments"></i> Mensajes
+              <span id="contador-mensajes"
+                    class="badge bg-danger rounded-circle position-absolute d-none"
+                    style="top: 0; right: 0; transform: translate(50%, -50%);">0</span>
+            </a>
+          </li>
+          <!-- Asistente: cualquier usuario autenticado -->
           <li class="nav-item" sec:authorize="isAuthenticated()">
-   			<a class="nav-link position-relative" th:href="@{/mensajes/lista}">
-        		<i class="fas fa-comments"></i> Mensajes
-       			 <span id="contador-mensajes" class="badge badge-danger rounded-circle position-absolute d-none" 
-              style="top: 0; right: 0; transform: translate(50%, -50%);">0</span>
-   		 	</a>
-			</li>
-          
-          <li class="nav-item">
-            <a class="nav-link" th:href="@{/chatbot}">Asistente</a>
+            <a class="nav-link" th:href="@{/chatbot}">
+              <i class="fas fa-robot"></i> Asistente
+            </a>
           </li>
         </ul>
         <ul class="navbar-nav ms-auto">
+          <!-- Login / Registro -->
           <li class="nav-item" sec:authorize="!isAuthenticated()">
             <a class="nav-link" th:href="@{/login}">Iniciar sesión</a>
           </li>
           <li class="nav-item" sec:authorize="!isAuthenticated()">
             <a class="nav-link" th:href="@{/registro}">Registro</a>
           </li>
+          <!-- Dropdown usuario -->
           <li class="nav-item dropdown" sec:authorize="isAuthenticated()">
             <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button"
                data-bs-toggle="dropdown" aria-expanded="false">
@@ -63,35 +78,29 @@
       </div>
     </div>
   </nav>
-</header>
-<!-- Agregar al final del header.html, justo antes del cierre de la etiqueta </div> -->
-<script th:inline="javascript">
-    // Actualizar contador de mensajes no leídos cada minuto
+
+  <!-- Script para actualizar el contador de mensajes -->
+  <script th:inline="javascript">
     document.addEventListener('DOMContentLoaded', function() {
-        function actualizarContadorMensajes() {
-            fetch('/api/mensajes/no-leidos')
-                .then(response => response.json())
-                .then(data => {
-                    const contadorElement = document.getElementById('contador-mensajes');
-                    if (contadorElement) {
-                        const total = data.total;
-                        
-                        if (total > 0) {
-                            contadorElement.textContent = total;
-                            contadorElement.classList.remove('d-none');
-                        } else {
-                            contadorElement.classList.add('d-none');
-                        }
-                    }
-                })
-                .catch(error => console.error('Error:', error));
-        }
-        
-        // Solo ejecutar si el usuario está autenticado
-        const contadorElement = document.getElementById('contador-mensajes');
-        if (contadorElement) {
-            actualizarContadorMensajes();
-            setInterval(actualizarContadorMensajes, 60000); // Cada minuto
-        }
+      function actualizarContadorMensajes() {
+        fetch('/api/mensajes/no-leidos')
+          .then(r => r.json())
+          .then(data => {
+            const contador = document.getElementById('contador-mensajes');
+            if (!contador) return;
+            if (data.total > 0) {
+              contador.textContent = data.total;
+              contador.classList.remove('d-none');
+            } else {
+              contador.classList.add('d-none');
+            }
+          })
+          .catch(console.error);
+      }
+      if (document.getElementById('contador-mensajes')) {
+        actualizarContadorMensajes();
+        setInterval(actualizarContadorMensajes, 60000);
+      }
     });
-</script>
+  </script>
+</header>

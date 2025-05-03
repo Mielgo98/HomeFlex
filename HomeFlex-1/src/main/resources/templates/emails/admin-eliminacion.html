@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>Cuenta eliminada por administrador</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin:0; padding:0; }
+    .container { padding:20px; }
+    .warning { color:#dc3545; font-weight:bold; }
+    @media(max-width:600px){ .container{padding:10px} }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Hola <span th:text="${nombreUsuario}">Usuario</span>,</h2>
+    <p class="warning">Te informamos que tu cuenta en HomeFlex ha sido eliminada por un administrador.</p>
+    <p>Motivo:</p>
+    <blockquote th:text="${motivo}">Razón proporcionada por el administrador…</blockquote>
+    <p>Si crees que se trata de un error o deseas más información, por favor contacta con nuestro equipo de soporte.</p>
+    <hr>
+    <small>No respondas directamente a este correo; es enviado automáticamente.</small>
+  </div>
+</body>
+</html>

@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="WARN">
+  <Properties>
+    <!-- Puedes pasar estas props desde application.properties -->
+    <Property name="log.level">INFO</Property>
+    <Property name="db.url">${sys:DB_URL}</Property>
+    <Property name="db.user">${sys:DB_USER}</Property>
+    <Property name="db.pass">${sys:DB_PASS}</Property>
+  </Properties>
+
+  <Appenders>
+    <!-- Consola -->
+    <Console name="Console" target="SYSTEM_OUT">
+      <PatternLayout pattern="%d{HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n"/>
+    </Console>
+
+    <!-- Archivo rotativo -->
+    <RollingFile name="File"
+                 fileName="logs/app.log"
+                 filePattern="logs/app-%d{yyyy-MM-dd}.log.gz">
+      <PatternLayout pattern="%d{ISO8601} [%t] %-5p %c{1}:%L - %m%n"/>
+      <Policies>
+        <TimeBasedTriggeringPolicy interval="1" modulate="true"/>
+      </Policies>
+    </RollingFile>
+
+    <!-- JDBC Appender: volcar accesos a la tabla audit_log -->
+    <JDBC name="DbAppender" tableName="audit_log" ignoreExceptions="false">
+      <ConnectionFactory class="org.apache.commons.dbcp2.BasicDataSource">
+        <Property name="driverClassName">org.postgresql.Driver</Property>
+        <Property name="url">${db.url}</Property>
+        <Property name="username">${db.user}</Property>
+        <Property name="password">${db.pass}</Property>
+      </ConnectionFactory>
+      <Column name="event_time" pattern="%d{yyyy-MM-dd HH:mm:ss}"/>
+      <Column name="level" pattern="%level"/>
+      <Column name="logger" pattern="%logger"/>
+      <Column name="message" pattern="%message"/>
+      <Column name="username" pattern="%X{username}"/> <!-- Si lo pones en el MDC -->
+    </JDBC>
+  </Appenders>
+
+  <Loggers>
+    <!-- Logger para tu filtro de audit -->
+    <Logger name="com.example.demo.security.AuditLogFilter" level="INFO" additivity="false">
+      <AppenderRef ref="DbAppender"/>
+      <AppenderRef ref="File"/>
+    </Logger>
+
+    <!-- Root Logger: consola + archivo -->
+    <Root level="${log.level}">
+      <AppenderRef ref="Console"/>
+      <AppenderRef ref="File"/>
+    </Root>
+  </Loggers>
+</Configuration>

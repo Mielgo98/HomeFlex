@@ -1,8 +1,11 @@
 package com.example.demo.usuario.service;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
@@ -14,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.example.demo.email.service.EmailService;
 import com.example.demo.foto.model.FotoVO;
 import com.example.demo.foto.repository.FotoRepository;
+import com.example.demo.propiedad.model.PropiedadDTO;
 import com.example.demo.propiedad.model.PropiedadVO;
 import com.example.demo.propiedad.repository.PropiedadRepository;
 import com.example.demo.reserva.model.ReservaVO;
@@ -56,298 +60,236 @@ public class UsuarioService {
     @Autowired
     private ReservaRepository reservaRepository;
     
-    /**
-     * Convierte el DTO de registro a un objeto UsuarioVO, asignándole los valores
-     * iniciales y, por defecto, el rol "INQUILINO".
-     */
     private UsuarioVO convertToUsuarioVO(RegistroDTO dto) {
         UsuarioVO usuario = new UsuarioVO();
         usuario.setUsername(dto.getUsername());
         usuario.setEmail(dto.getEmail());
-        // Se codifica la contraseña usando el PasswordEncoder
         usuario.setPassword(passwordEncoder.encode(dto.getPassword()));
         usuario.setNombre(dto.getNombre());
         usuario.setApellidos(dto.getApellidos());
         usuario.setTelefono(dto.getTelefono());
         usuario.setFechaRegistro(LocalDateTime.now());
         
-        // Configuración inicial de la cuenta - Deshabilitada hasta activación
         usuario.setVerificado(false);
         usuario.setRecordatorio(false);
-        usuario.setIsEnabled(false); // La cuenta estará deshabilitada hasta que se active
+        usuario.setIsEnabled(false);
         usuario.setAccountNonExpired(true);
         usuario.setAccountNonLocked(true);
         usuario.setCredentialsNonExpired(true);
         
-        // Genera un token de verificación y define su expiración (24 horas)
         String token = UUID.randomUUID().toString();
         usuario.setTokenVerificacion(token);
         usuario.setTokenExpiration(LocalDateTime.now().plusMinutes(3));
-     // Justo después de asignar los tokens
-        System.out.println("Token generado: " + token);
-        System.out.println("Verificación de token asignado: " + usuario.getTokenVerificacion());
-        System.out.println("Expiración establecida: " + usuario.getTokenExpiration());
+        
         return usuario;
     }
     
-    /**
-     * Registra un nuevo usuario convirtiendo el RegistroDTO a UsuarioVO y guardándolo en la base de datos.
-     * Además, envía un email de activación.
-     */
     @Transactional
     public void registroUsuario(RegistroDTO registro) {
+        if (usuarioRepository.findByUsername(registro.getUsername()).isPresent())
+            throw new RuntimeException("El nombre de usuario ya está en uso");
+        if (usuarioRepository.findUserEntityByEmail(registro.getEmail()).isPresent())
+            throw new RuntimeException("El email ya está registrado");
+        
+        UsuarioVO user = convertToUsuarioVO(registro);
+        RolVO rolInquilino = rolRepository.findByNombre("INQUILINO")
+                .orElseThrow(() -> new RuntimeException("Rol INQUILINO no encontrado"));
+        user.addRol(rolInquilino);
+        
+        UsuarioVO savedUser = usuarioRepository.save(user);
         try {
-            // Verificar si el username ya existe
-            if (usuarioRepository.findByUsername(registro.getUsername()).isPresent()) {
-                throw new RuntimeException("El nombre de usuario ya está en uso");
-            }
-            
-            // Verificar si el email ya existe
-            if (usuarioRepository.findUserEntityByEmail(registro.getEmail()).isPresent()) {
-                throw new RuntimeException("El email ya está registrado");
-            }
-            
-            // Crear el usuario con los datos básicos
-            UsuarioVO user = convertToUsuarioVO(registro);
-            
-            // Buscar el rol INQUILINO
-            RolVO rolInquilino = rolRepository.findByNombre("INQUILINO")
-                    .orElseThrow(() -> new RuntimeException("El rol INQUILINO no se encuentra en la base de datos"));
-            
-            // Asignar el rol al usuario
-            user.addRol(rolInquilino);
-            
-            // Guardar el usuario
-            UsuarioVO savedUser = usuarioRepository.save(user);
-            
-            System.out.println("Usuario registrado con éxito: " + savedUser.getEmail());
-            System.out.println("Roles asignados: ");
-            savedUser.getRoles().forEach(rol -> System.out.println("- " + rol.getNombre()));
-            
-            // Enviar email de activación
-            try {
-                emailService.enviarEmailActivacion(
-                    savedUser.getEmail(), 
-                    savedUser.getNombre(), 
-                    savedUser.getTokenVerificacion()
-                );
-            } catch (MessagingException e) {
-                System.err.println("Error al enviar email de activación: " + e.getMessage());
-                // Continuamos con el proceso aunque falle el envío de email
-            }
-            
-        } catch (Exception e) {
-            System.err.println("Error al registrar usuario: " + e.getMessage());
-            e.printStackTrace();
-            throw e; // Re-lanzamos la excepción para manejarla en el controlador
+            emailService.enviarEmailActivacion(
+                savedUser.getEmail(), 
+                savedUser.getNombre(), 
+                savedUser.getTokenVerificacion()
+            );
+        } catch (MessagingException e) {
+            System.err.println("Error al enviar email de activación: " + e.getMessage());
         }
     }
     
-    /**
-     * Activa la cuenta de un usuario utilizando el token proporcionado.
-     * @param token El token de verificación.
-     * @return true si la activación fue exitosa, false si no se encontró el token o ha expirado.
-     */
     @Transactional
     public boolean activarCuenta(String token) {
         try {
-            // Buscar usuario por token
             UsuarioVO usuario = usuarioRepository.findByTokenVerificacion(token)
-                    .orElseThrow(() -> new RuntimeException("Token de verificación no válido"));
-            
-            // Verificar que el token no haya expirado
-            if (usuario.getTokenExpiration().isBefore(LocalDateTime.now())) {
-                throw new RuntimeException("El token de verificación ha expirado");
-            }
-            
-            // Activar la cuenta
+                .orElseThrow(() -> new RuntimeException("Token inválido"));
+            if (usuario.getTokenExpiration().isBefore(LocalDateTime.now()))
+                throw new RuntimeException("Token expirado");
             usuario.setVerificado(true);
             usuario.setIsEnabled(true);
-            usuario.setTokenVerificacion(null); // Eliminamos el token una vez usado
+            usuario.setTokenVerificacion(null);
             usuario.setTokenExpiration(null);
-            
             usuarioRepository.save(usuario);
-            
-            System.out.println("Cuenta activada con éxito para: " + usuario.getEmail());
             return true;
-            
         } catch (Exception e) {
-            System.err.println("Error al activar cuenta: " + e.getMessage());
             return false;
         }
     }
     
-    /**
-     * Busca un usuario por su nombre de usuario
-     * @param username Nombre de usuario a buscar
-     * @return El objeto UsuarioVO si se encuentra
-     * @throws RuntimeException si el usuario no existe
-     */
+    
+    public UsuarioVO buscarPorById(Long id) {
+        return usuarioRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+    }
+    
     public UsuarioVO buscarPorUsername(String username) {
         return usuarioRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
     }
 
-    /**
-     * Actualiza la información del perfil de un usuario
-     * @param perfilDTO Datos del perfil a actualizar
-     * @return El usuario actualizado
-     * @throws RuntimeException si hay errores durante la actualización
-     */
     @Transactional
     public UsuarioVO actualizarPerfil(PerfilDTO perfilDTO) {
-        try {
-            // Buscar el usuario por ID
-            UsuarioVO usuario = usuarioRepository.findById(perfilDTO.getId())
-                    .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
-            
-            // Verificar que solo el propio usuario pueda modificar su perfil
-            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-            String usernameActual = auth.getName();
-            
-            if (!usuario.getUsername().equals(usernameActual)) {
-                throw new RuntimeException("No tienes permiso para modificar este perfil");
-            }
-            
-            // Actualizar solo los campos permitidos
-            usuario.setNombre(perfilDTO.getNombre());
-            usuario.setApellidos(perfilDTO.getApellidos());
-            usuario.setTelefono(perfilDTO.getTelefono());
-            
-            // Actualizar foto de perfil si se proporciona
-            if (perfilDTO.getFotoPerfil() != null && !perfilDTO.getFotoPerfil().isEmpty()) {
-                usuario.setFotoPerfil(perfilDTO.getFotoPerfil());
-            }
-            
-            // Guardar los cambios
-            return usuarioRepository.save(usuario);
-            
-        } catch (Exception e) {
-            throw new RuntimeException("Error al actualizar el perfil: " + e.getMessage());
+        UsuarioVO usuario = usuarioRepository.findById(perfilDTO.getId())
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (!usuario.getUsername().equals(auth.getName()))
+            throw new RuntimeException("No tienes permiso para modificar este perfil");
+        usuario.setNombre(perfilDTO.getNombre());
+        usuario.setApellidos(perfilDTO.getApellidos());
+        usuario.setTelefono(perfilDTO.getTelefono());
+        if (perfilDTO.getFotoPerfil() != null && !perfilDTO.getFotoPerfil().isEmpty())
+            usuario.setFotoPerfil(perfilDTO.getFotoPerfil());
+        return usuarioRepository.save(usuario);
+    }
+
+    @Transactional
+    public void cambiarPassword(String passwordActual, String passwordNueva) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        UsuarioVO usuario = usuarioRepository.findByUsername(auth.getName())
+            .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+        if (!passwordEncoder.matches(passwordActual, usuario.getPassword()))
+            throw new RuntimeException("Contraseña actual incorrecta");
+        if (passwordEncoder.matches(passwordNueva, usuario.getPassword()))
+            throw new RuntimeException("La nueva contraseña debe ser diferente");
+        usuario.setPassword(passwordEncoder.encode(passwordNueva));
+        usuarioRepository.save(usuario);
+    }
+    
+    @Transactional
+    public boolean darDeBajaUsuario(String password) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        UsuarioVO usuario = usuarioRepository.findByUsername(auth.getName())
+            .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+        if (!passwordEncoder.matches(password, usuario.getPassword()))
+            throw new RuntimeException("Contraseña incorrecta");
+        // eliminación de datos relacionados...
+        propiedadRepository.findByPropietario(usuario).forEach(prop -> {
+            fotoRepository.deleteAll(fotoRepository.findByPropiedad(prop));
+            valoracionRepository.deleteAll(valoracionRepository.findByPropiedad(prop));
+            reservaRepository.deleteAll(reservaRepository.findByPropiedad(prop));
+            propiedadRepository.delete(prop);
+        });
+        reservaRepository.deleteAll(reservaRepository.findByUsuario(usuario));
+        valoracionRepository.deleteAll(valoracionRepository.findByUsuario(usuario));
+        usuario.getRoles().clear();
+        usuarioRepository.save(usuario);
+        usuarioRepository.delete(usuario);
+        SecurityContextHolder.clearContext();
+        return true;
+    }
+    
+    public Map<String, Long> contarUsuariosPorRol() {
+        List<Object[]> resultados = usuarioRepository.contarUsuariosPorRol();
+        Map<String, Long> mapa = new HashMap<>();
+        for (Object[] fila : resultados)
+            mapa.put((String)fila[0], ((Number)fila[1]).longValue());
+        return mapa;
+    }
+    
+    public List<PropiedadDTO> obtenerPropiedadesFavoritas(String username) {
+        UsuarioVO usuario = usuarioRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+        return usuario.getPropiedadesFavoritas().stream()
+                .map(PropiedadDTO::new)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public void agregarPropiedadFavorita(String username, Long propiedadId) {
+        UsuarioVO usuario = usuarioRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+        PropiedadVO propiedad = propiedadRepository.findById(propiedadId)
+                .orElseThrow(() -> new RuntimeException("Propiedad no encontrada"));
+        if (!usuario.getPropiedadesFavoritas().contains(propiedad)) {
+            usuario.getPropiedadesFavoritas().add(propiedad);
+            usuarioRepository.save(usuario);
         }
     }
 
-    
-    /**
-     * Cambia la contraseña de un usuario verificando primero la contraseña actual
-     * @param passwordActual Contraseña actual del usuario
-     * @param passwordNueva Nueva contraseña
-     * @throws RuntimeException si la contraseña actual no es correcta o hay otro error
-     */
     @Transactional
-    public void cambiarPassword(String passwordActual, String passwordNueva) {
-        try {
-            // Obtener el usuario autenticado
-            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-            String username = auth.getName();
-            
-            // Buscar el usuario en la base de datos
-            UsuarioVO usuario = usuarioRepository.findByUsername(username)
-                    .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
-            
-            // Verificar que la contraseña actual sea correcta
-            if (!passwordEncoder.matches(passwordActual, usuario.getPassword())) {
-                throw new RuntimeException("La contraseña actual no es correcta");
-            }
-            
-            // Verificar que la nueva contraseña no sea igual a la actual
-            if (passwordEncoder.matches(passwordNueva, usuario.getPassword())) {
-                throw new RuntimeException("La nueva contraseña debe ser diferente a la actual");
-            }
-            
-            // Codificar y establecer la nueva contraseña
-            String encodedPassword = passwordEncoder.encode(passwordNueva);
-            usuario.setPassword(encodedPassword);
-            
-            // Guardar los cambios
-            usuarioRepository.save(usuario);
-            
-            System.out.println("Contraseña actualizada correctamente para el usuario: " + username);
-            
-        } catch (Exception e) {
-            throw new RuntimeException("Error al cambiar la contraseña: " + e.getMessage());
-        }
+    public void eliminarPropiedadFavorita(String username, Long propiedadId) {
+        UsuarioVO usuario = usuarioRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+        PropiedadVO propiedad = propiedadRepository.findById(propiedadId)
+                .orElseThrow(() -> new RuntimeException("Propiedad no encontrada"));
+        usuario.getPropiedadesFavoritas().remove(propiedad);
+        usuarioRepository.save(usuario);
     }
     
     /**
-     * Da de baja a un usuario del sistema verificando su contraseña primero
-     * @param password Contraseña del usuario para confirmar la operación
-     * @return true si se ha eliminado con éxito
-     * @throws RuntimeException si la contraseña no es correcta o hay otro error
+     * Registra un ADMINISTRADOR (directamente verificado y habilitado).
      */
     @Transactional
-    public boolean darDeBajaUsuario(String password) {
-        try {
-            // Obtener el usuario autenticado
-            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-            String username = auth.getName();
-            
-            // Buscar el usuario en la base de datos
-            UsuarioVO usuario = usuarioRepository.findByUsername(username)
-                    .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
-            
-            // Verificar que la contraseña sea correcta
-            if (!passwordEncoder.matches(password, usuario.getPassword())) {
-                throw new RuntimeException("La contraseña proporcionada no es correcta");
-            }
-            
-//            Long userId = usuario.getId();
-            
-            // 1. Eliminar o actualizar propiedades (opción 1: eliminar, opción 2: transferir a un usuario administrador)
-            // Opción 1: Eliminar propiedades
-            List<PropiedadVO> propiedades = propiedadRepository.findByPropietario(usuario);
-            for (PropiedadVO propiedad : propiedades) {
-                // Primero eliminar las fotos asociadas a la propiedad
-                List<FotoVO> fotos = fotoRepository.findByPropiedad(propiedad);
-                fotoRepository.deleteAll(fotos);
-                
-                // Eliminar valoraciones de la propiedad
-                List<ValoracionVO> valoracionesPropiedad = valoracionRepository.findByPropiedad(propiedad);
-                valoracionRepository.deleteAll(valoracionesPropiedad);
-                
-                // Eliminar reservas de la propiedad
-                List<ReservaVO> reservasPropiedad = reservaRepository.findByPropiedad(propiedad);
-                reservaRepository.deleteAll(reservasPropiedad);
-                
-                // Finalmente eliminar la propiedad
-                propiedadRepository.delete(propiedad);
-            }
-            
-            // 2. Eliminar todas las reservas hechas por el usuario como inquilino
-            List<ReservaVO> reservasUsuario = reservaRepository.findByUsuario(usuario);
-            reservaRepository.deleteAll(reservasUsuario);
-            
-            // 3. Eliminar todas las valoraciones hechas por el usuario
-            List<ValoracionVO> valoracionesUsuario = valoracionRepository.findByUsuario(usuario);
-            valoracionRepository.deleteAll(valoracionesUsuario);
-            
-            // 4. Eliminar mensajes (asumiendo que tienes un repositorio para mensajes)
-            // mensajeRepository.deleteByEmisorOrReceptor(usuario, usuario);
-            
-            // 5. Eliminar notificaciones (asumiendo que tienes un repositorio para notificaciones)
-            // notificacionRepository.deleteByUsuario(usuario);
-            
-            // 6. Eliminar conversaciones de chatbot (asumiendo que tienes un repositorio para conversaciones)
-            // chatbotConversacionRepository.deleteByUsuario(usuario);
-            
-            // 7. Eliminar estadísticas (asumiendo que tienes un repositorio para estadísticas)
-            // estadisticaRepository.deleteByUsuario(usuario);
-            
-            // 8. Limpiar roles (no es necesario eliminar, se hará en cascada con el usuario)
-            usuario.getRoles().clear();
-            usuarioRepository.save(usuario);
-            
-            // 9. Finalmente, eliminar el usuario
-            usuarioRepository.delete(usuario);
-            
-            // Cerrar la sesión del usuario
-            SecurityContextHolder.clearContext();
-            
-            System.out.println("Usuario eliminado correctamente: " + username);
-            return true;
-            
-        } catch (Exception e) {
-            throw new RuntimeException("Error al dar de baja al usuario: " + e.getMessage());
+    public void registrarAdministrador(RegistroDTO dto) {
+        // Validación de contraseñas
+        if (!dto.getPassword().equals(dto.getConfirmPassword())) {
+            throw new RuntimeException("Las contraseñas no coinciden");
         }
+        if (usuarioRepository.findByUsername(dto.getUsername()).isPresent())
+            throw new RuntimeException("El username ya existe");
+        if (usuarioRepository.findUserEntityByEmail(dto.getEmail()).isPresent())
+            throw new RuntimeException("El email ya está en uso");
+
+        UsuarioVO admin = convertToUsuarioVO(dto);
+        // Aquí buscamos "ADMIN", que es el nombre que tienes en tu BD
+        RolVO rolAdmin = rolRepository.findByNombre("ADMIN")
+            .orElseThrow(() -> new RuntimeException("Rol ADMIN no encontrado"));
+        admin.addRol(rolAdmin);
+        admin.setVerificado(true);
+        admin.setIsEnabled(true);
+        usuarioRepository.save(admin);
+    }
+
+    public List<UsuarioVO> obtenerAdministradores() {
+        return usuarioRepository.findAllByRolesNombre("ADMIN");
+    }
+    
+    public List<UsuarioVO> obtenerUsuariosNormales() {
+        return usuarioRepository.findAllByRolesNombre("ADMIN");
+    }
+
+    @Transactional
+    public void eliminarUsuario(Long id) {
+        usuarioRepository.deleteById(id);
+    }
+
+	 /**
+     * Recupera todos los usuarios que sean PROPIETARIO o INQUILINO.
+     */
+    public List<UsuarioVO> buscarPropietariosEInquilinos() {
+        List<String> roles = List.of("PROPIETARIO", "INQUILINO");
+        return usuarioRepository.findDistinctByRolNombreIn(roles);
+    }
+    
+    /**
+     * eliminar usuario por username
+     * @param username
+     */
+
+    @Transactional
+    public void eliminarUsuarioPorUsername(String username) {
+        UsuarioVO usuario = usuarioRepository.findByUsername(username)
+            .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+        // eliminar datos relacionados como en darDeBajaUsuario...
+        propiedadRepository.findByPropietario(usuario).forEach(prop -> {
+            fotoRepository.deleteAll(fotoRepository.findByPropiedad(prop));
+            valoracionRepository.deleteAll(valoracionRepository.findByPropiedad(prop));
+            reservaRepository.deleteAll(reservaRepository.findByPropiedad(prop));
+            propiedadRepository.delete(prop);
+        });
+        reservaRepository.deleteAll(reservaRepository.findByUsuario(usuario));
+        valoracionRepository.deleteAll(valoracionRepository.findByUsuario(usuario));
+        usuario.getRoles().clear();
+        usuarioRepository.delete(usuario);
     }
 }

@@ -1,6 +1,7 @@
 package com.example.demo.propiedad.repository;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 
 import org.springframework.data.domain.Page;
@@ -66,21 +67,21 @@ public interface PropiedadRepository extends JpaRepository<PropiedadVO, Long> {
             Pageable pageable
         );
     
-    // Búsqueda avanzada
     @Query("SELECT p FROM PropiedadVO p WHERE " +
-           "(:ciudad IS NULL OR LOWER(p.ciudad) LIKE LOWER(CONCAT('%', :ciudad, '%'))) AND " +
-           "(:pais IS NULL OR LOWER(p.pais) LIKE LOWER(CONCAT('%', :pais, '%'))) AND " +
-           "(:capacidad IS NULL OR p.capacidad >= :capacidad) AND " +
-           "(:dormitorios IS NULL OR p.dormitorios >= :dormitorios) AND " +
-           "(:banos IS NULL OR p.banos >= :banos) AND " +
-           "(p.activo = true)")
-    Page<PropiedadVO> busquedaAvanzada(
-            @Param("ciudad") String ciudad,
-            @Param("pais") String pais,
-            @Param("capacidad") Integer capacidad,
-            @Param("dormitorios") Integer dormitorios,
-            @Param("banos") Integer banos,
-            Pageable pageable);
+    	       "(:ciudad IS NULL OR LOWER(p.ciudad) LIKE LOWER(CONCAT('%', :ciudad, '%'))) AND " +
+    	       "(:pais IS NULL OR LOWER(p.pais) LIKE LOWER(CONCAT('%', :pais, '%'))) AND " +
+    	       "(:capacidad IS NULL OR p.capacidad >= :capacidad) AND " +
+    	       "(:dormitorios IS NULL OR p.dormitorios >= :dormitorios) AND " +
+    	       "(:banos IS NULL OR p.banos >= :banos) AND " +
+    	       "(p.activo = true)")
+    	Page<PropiedadVO> busquedaAvanzada(
+    	    @Param("ciudad") String ciudad,
+    	    @Param("pais") String pais,
+    	    @Param("capacidad") Integer capacidad,
+    	    @Param("dormitorios") Integer dormitorios,
+    	    @Param("banos") Integer banos,
+    	    Pageable pageable);
+
     
     // Búsqueda avanzada con rango de precios
     @Query("SELECT p FROM PropiedadVO p WHERE " +
@@ -220,4 +221,9 @@ public interface PropiedadRepository extends JpaRepository<PropiedadVO, Long> {
             @Param("precioMin") Double precioMin,
             @Param("precioMax") Double precioMax,
             Pageable pageable);
+
+
+    
+ 
 }
+

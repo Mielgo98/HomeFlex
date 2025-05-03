@@ -44,6 +44,9 @@ public class SecurityConfig {
 
     @Autowired
     private JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
+    
+    @Autowired
+    private AuditLogFilter auditLogFilter;
 
     /**
      * Ignora rutas estáticas para que no pasen por los filtros de seguridad.
@@ -115,34 +118,35 @@ public class SecurityConfig {
     @Configuration
     @Order(2)
     public class WebSecurityConfig {
-        @Bean
-        public SecurityFilterChain webSecurityFilterChain(HttpSecurity http) throws Exception {
-            http
-                .csrf(AbstractHttpConfigurer::disable)
-                .authorizeHttpRequests(auth -> auth
-                    .requestMatchers(
-                        "/", "/index", "/login", "/login?error", "/login?logout",
-                        "/registro", "/activar", "/cuenta-eliminada"
-                    ).permitAll()
-                    .anyRequest().authenticated()
-                )
-                .formLogin(form -> form
-                    .loginPage("/login")
-                    .loginProcessingUrl("/login")
-                    .failureHandler(authenticationFailureHandler)
-                    .successHandler(authenticationSuccessHandler)
-                    .permitAll()
-                )
-                .logout(logout -> logout
-                    .logoutUrl("/logout")
-                    .logoutSuccessUrl("/login?logout=true")
-                    .invalidateHttpSession(true)
-                    .deleteCookies("JSESSIONID", "jwt_token")
-                    .permitAll()
-                )
-                .authenticationProvider(authenticationProvider());
-
-            return http.build();
-        }
+    	   @Bean
+    	    public SecurityFilterChain webSecurityFilterChain(HttpSecurity http) throws Exception {
+    	        http
+    	            .csrf(AbstractHttpConfigurer::disable)
+    	            .authorizeHttpRequests(auth -> auth
+    	                .requestMatchers(
+    	                    "/", "/index", "/login", "/login?error", "/login?logout",
+    	                    "/registro", "/activar", "/cuenta-eliminada"
+    	                ).permitAll()
+    	                .anyRequest().authenticated()
+    	            )
+    	            .formLogin(form -> form
+    	                .loginPage("/login")
+    	                .loginProcessingUrl("/login")
+    	                .failureHandler(authenticationFailureHandler)
+    	                .successHandler(authenticationSuccessHandler)
+    	                .permitAll()
+    	            )
+    	            .logout(logout -> logout
+    	                .logoutUrl("/logout")
+    	                .logoutSuccessUrl("/login?logout=true")
+    	                .invalidateHttpSession(true)
+    	                .deleteCookies("JSESSIONID", "jwt_token")
+    	                .permitAll()
+    	            )
+    	            .authenticationProvider(authenticationProvider())
+    	            // ← Aquí añadimos el AuditLogFilter
+    	            .addFilterBefore(auditLogFilter, UsernamePasswordAuthenticationFilter.class);
+    	        return http.build();
+    	    }
     }
 }

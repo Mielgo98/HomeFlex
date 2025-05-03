@@ -1,0 +1,98 @@
+/* Estilos para el formulario de publicación de propiedades */
+
+/* Indicadores de campo requerido */
+.required-field::after {
+    content: " *";
+    color: #dc3545;
+}
+
+/* Estilos para los pasos del formulario */
+.step {
+    transition: opacity 0.3s, transform 0.3s;
+}
+
+.step.d-none {
+    display: none !important;
+}
+
+/* Animación de entrada */
+.step-enter {
+    opacity: 0;
+    transform: translateX(20px);
+}
+
+.step-enter-active {
+    opacity: 1;
+    transform: translateX(0);
+    transition: opacity 0.3s, transform 0.3s;
+}
+
+/* Estilos para la previsualización de imágenes */
+#preview-container {
+    min-height: 150px;
+}
+
+.preview-item {
+    position: relative;
+    margin-bottom: 15px;
+}
+
+.preview-img {
+    width: 100%;
+    height: 150px;
+    object-fit: cover;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.preview-delete {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    background-color: rgba(255, 255, 255, 0.7);
+    border-radius: 50%;
+    width: 25px;
+    height: 25px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.preview-delete:hover {
+    background-color: rgba(255, 255, 255, 0.9);
+}
+
+.preview-primary {
+    position: absolute;
+    top: 5px;
+    left: 5px;
+    background-color: rgba(25, 135, 84, 0.7);
+    color: white;
+    padding: 2px 8px;
+    font-size: 12px;
+    border-radius: 3px;
+}
+
+/* Estilos responsive */
+@media (max-width: 768px) {
+    .preview-img {
+        height: 120px;
+    }
+}
+
+/* Estilos para el mapa */
+#map {
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.map-marker-label {
+    background-color: white;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    padding: 2px 5px;
+    font-size: 12px;
+    white-space: nowrap;
+}

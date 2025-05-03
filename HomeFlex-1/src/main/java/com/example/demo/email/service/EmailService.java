@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -40,253 +41,226 @@ public class EmailService {
     private String appUrl;
     
     /**
-     * Envía un email de activación de cuenta.
+     * Método genérico para enviar cualquier plantilla Thymeleaf.
+     * @param destinatario dirección del receptor
+     * @param asunto asunto del correo
+     * @param plantilla nombre de la plantilla (en src/main/resources/templates/emails/, sin .html)
+     * @param variables mapa con las variables que la plantilla necesita
      */
-    public void enviarEmailActivacion(String destinatario, String nombre, String token) throws MessagingException {
-        // Preparar el contexto para la plantilla
-        Context context = new Context();
-        context.setVariable("nombre", nombre);
-        context.setVariable("token", token);
-        context.setVariable("activationUrl", appUrl + "/activar?token=" + token);
-        
-        // Procesar la plantilla
-        String contenido = templateEngine.process("emails/activacion-cuenta", context);
-        
-        // Crear el mensaje
-        MimeMessage message = mailSender.createMimeMessage();
-        MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-        
+    public void send(
+            String destinatario,
+            String asunto,
+            String plantilla,
+            Map<String, Object> variables
+    ) throws MessagingException {
+        Context ctx = new Context();
+        variables.forEach(ctx::setVariable);
+        String htmlBody = templateEngine.process("emails/" + plantilla, ctx);
+
+        MimeMessage msg = mailSender.createMimeMessage();
+        MimeMessageHelper helper = new MimeMessageHelper(msg, true, "UTF-8");
         helper.setFrom(emailFrom);
         helper.setTo(destinatario);
-        helper.setSubject("Activación de tu cuenta en HomeFlex");
-        helper.setText(contenido, true); // true = es HTML
-        
-        // Enviar el email
-        mailSender.send(message);
-        
-        System.out.println("Email de activación enviado a: " + destinatario);
+        helper.setSubject(asunto);
+        helper.setText(htmlBody, true);
+
+        mailSender.send(msg);
+        System.out.println("Email '" + asunto + "' enviado a: " + destinatario);
     }
     
+    /** Envía email de activación de cuenta */
+    public void enviarEmailActivacion(String destinatario, String nombre, String token) throws MessagingException {
+        send(
+            destinatario,
+            "Activación de tu cuenta en HomeFlex",
+            "activacion-cuenta",
+            Map.of(
+                "nombre", nombre,
+                "token", token,
+                "activationUrl", appUrl + "/activar?token=" + token
+            )
+        );
+    }
     
-    /**
-     * Envía un email de recordatorio para la activación de cuenta.
-     */
+    /** Envía recordatorio de activación */
     public void enviarEmailRecordatorio(String destinatario, String nombre, String token, LocalDateTime expiracion) 
             throws MessagingException {
-        // Preparar el contexto para la plantilla
-        Context context = new Context();
-        context.setVariable("nombre", nombre);
-        context.setVariable("token", token);
-        context.setVariable("activationUrl", appUrl + "/activar?token=" + token);
-        
-        // Formatear la fecha de expiración
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
-        context.setVariable("expiracion", expiracion.format(formatter));
-        
-        // Procesar la plantilla
-        String contenido = templateEngine.process("emails/recordatorio-activacion", context);
-        
-        // Crear el mensaje
-        MimeMessage message = mailSender.createMimeMessage();
-        MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-        
-        helper.setFrom(emailFrom);
-        helper.setTo(destinatario);
-        helper.setSubject("Recordatorio: Activa tu cuenta en HomeFlex");
-        helper.setText(contenido, true); // true = es HTML
-        
-        // Enviar el email
-        mailSender.send(message);
-        
-        System.out.println("Email de recordatorio enviado a: " + destinatario);
+        String exp = expiracion.format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss"));
+        send(
+            destinatario,
+            "Recordatorio: Activa tu cuenta en HomeFlex",
+            "recordatorio-activacion",
+            Map.of(
+                "nombre", nombre,
+                "token", token,
+                "activationUrl", appUrl + "/activar?token=" + token,
+                "expiracion", exp
+            )
+        );
     }
     
-
-/**
- * Envía un email informando al usuario que su cuenta ha sido eliminada por no activarla a tiempo.
- */
-public void enviarEmailCuentaEliminada(String destinatario, String nombre) throws MessagingException {
-    // Preparar el contexto para la plantilla
-    Context context = new Context();
-    context.setVariable("nombre", nombre);
+    /** Notifica que la cuenta ha sido eliminada */
+    public void enviarEmailCuentaEliminada(String destinatario, String nombre) throws MessagingException {
+        send(
+            destinatario,
+            "Tu cuenta en HomeFlex ha sido eliminada",
+            "cuenta-eliminada",
+            Map.of("nombre", nombre)
+        );
+    }
     
-    // Procesar la plantilla
-    String contenido = templateEngine.process("emails/cuenta-eliminada", context);
+    /** Recordatorio automático a mitad de expiración */
+    @Scheduled(fixedRate = 15000)
+    @Transactional
+    public void verificarActivacionesPendientes() {
+        LocalDateTime ahora = LocalDateTime.now();
+        usuarioRepository.findByVerificadoAndTokenVerificacionIsNotNull(false).stream()
+            .filter(u -> u.getTokenExpiration() != null && u.getTokenExpiration().isAfter(ahora))
+            .forEach(u -> {
+                LocalDateTime creado = u.getFechaRegistro();
+                LocalDateTime exp = u.getTokenExpiration();
+                long segundos = ChronoUnit.SECONDS.between(creado, exp);
+                LocalDateTime mitad = creado.plusSeconds(segundos/2);
+                if (ahora.isAfter(mitad) && !u.getRecordatorio()) {
+                    try {
+                        enviarEmailRecordatorio(u.getEmail(), u.getNombre(), u.getTokenVerificacion(), exp);
+                        u.setRecordatorio(true);
+                    } catch (MessagingException e) {
+                        System.err.println("Error recordatorio a " + u.getEmail() + ": " + e.getMessage());
+                    }
+                }
+            });
+    }
     
-    // Crear el mensaje
-    MimeMessage message = mailSender.createMimeMessage();
-    MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+    /** Elimina y notifica cuentas expiradas */
+    @Scheduled(fixedRate = 30000)
+    @Transactional
+    public void eliminarUsuariosTokenExpirado() {
+        LocalDateTime ahora = LocalDateTime.now();
+        usuarioRepository.findByVerificadoAndTokenVerificacionIsNotNull(false).stream()
+            .filter(u -> u.getTokenExpiration() != null && u.getTokenExpiration().isBefore(ahora))
+            .forEach(u -> {
+                try {
+                    enviarEmailCuentaEliminada(u.getEmail(), u.getNombre());
+                } catch (MessagingException e) {
+                    System.err.println("Error notificación eliminación a " + u.getEmail() + ": " + e.getMessage());
+                } finally {
+                    usuarioRepository.delete(u);
+                    System.out.println("Usuario eliminado: " + u.getEmail());
+                }
+            });
+    }
     
-    helper.setFrom(emailFrom);
-    helper.setTo(destinatario);
-    helper.setSubject("Tu cuenta en HomeFlex ha sido eliminada");
-    helper.setText(contenido, true); // true = es HTML
+    /** Notifica al propietario nueva valoración */
+    public void enviarNotificacionNuevaValoracion(
+            String emailPropietario,
+            String nombrePropietario,
+            String nombreValorador,
+            String tituloPropiedad,
+            Integer puntuacion,
+            String comentario
+    ) throws MessagingException {
+        send(
+            emailPropietario,
+            "Nueva valoración para tu propiedad en HomeFlex",
+            "nueva-valoracion",
+            Map.of(
+                "nombrePropietario", nombrePropietario,
+                "nombreValorador", nombreValorador,
+                "tituloPropiedad", tituloPropiedad,
+                "puntuacion", puntuacion,
+                "comentario", comentario,
+                "appUrl", appUrl
+            )
+        );
+    }
     
-    // Enviar el email
-    mailSender.send(message);
+    /** Notifica al usuario respuesta a su valoración */
+    public void enviarNotificacionRespuestaValoracion(
+            String emailUsuario,
+            String nombreUsuario,
+            String nombrePropietario,
+            String tituloPropiedad,
+            String respuesta
+    ) throws MessagingException {
+        send(
+            emailUsuario,
+            "Han respondido a tu valoración en HomeFlex",
+            "respuesta-valoracion",
+            Map.of(
+                "nombreUsuario", nombreUsuario,
+                "nombrePropietario", nombrePropietario,
+                "tituloPropiedad", tituloPropiedad,
+                "respuesta", respuesta,
+                "appUrl", appUrl
+            )
+        );
+    }
     
-    System.out.println("Email de notificación de eliminación enviado a: " + destinatario);
-}
+    /** Notifica cambio de contraseña */
+    public void sendPasswordChangeEmail(UsuarioVO usuario) throws Exception {
+        send(
+            usuario.getEmail(),
+            "Tu contraseña en HomeFlex ha sido cambiada",
+            "password-change",
+            Map.of(
+                "nombre", usuario.getNombre(),
+                "loginUrl", appUrl + "/login",
+                "soporteUrl", appUrl + "/soporte"
+            )
+        );
+    }
     
     /**
-     *  Comprobamos aquellos usuarios que no se han verificado si llegan a la mitad del tiempo de la fecha de verificacion del token para enviarles un recordatorio
+     * Para envíos genéricos desde admin.
      */
-    
-		@Scheduled(fixedRate = 15000)
-		@Transactional
-		public void verificarActivacionesPendientes() {
-		    LocalDateTime ahora = LocalDateTime.now();
-		
-		    usuarioRepository.findByVerificadoAndTokenVerificacionIsNotNull(false).stream()
-		    .filter(usuario -> usuario.getTokenExpiration() != null 
-		            && usuario.getTokenExpiration().isAfter(ahora))
-		    .forEach(usuario -> {
-		        try {
-		            // Calcular punto medio
-		            LocalDateTime fechaCreacion = usuario.getFechaRegistro();
-		            LocalDateTime fechaExpiracion = usuario.getTokenExpiration();
-		            LocalDateTime puntoMedio = fechaCreacion.plus(
-		                ChronoUnit.SECONDS.between(fechaCreacion, fechaExpiracion) / 2,
-		                ChronoUnit.SECONDS
-		            );
-		            
-		            //Enviamos recordatorio si se ha sobrepasado el punto medio
-		            if (ahora.isAfter(puntoMedio) && !usuario.getRecordatorio()) {
-		                enviarEmailRecordatorio(
-		                    usuario.getEmail(), 
-		                    usuario.getNombre(), 
-		                    usuario.getTokenVerificacion(),
-		                    usuario.getTokenExpiration()
-		                );
-		                usuario.setRecordatorio(true);
-		            }
-		        } catch (MessagingException e) {
-		            System.err.println("Error al enviar recordatorio a " + usuario.getEmail() + ": " + e.getMessage());
-		        }
-		    });    	
-		}
-    
-    /**
-     * Eliminamos aquellos usuarios de la base de datos  que en el tiempo anterior a la expiracion del token no han verificado la cuenta 
-     */
-		   @Scheduled(fixedRate = 30000)
-		    @Transactional
-		    public void eliminarUsuariosTokenExpirado() {
-		        LocalDateTime ahora = LocalDateTime.now();
-		        usuarioRepository.findByVerificadoAndTokenVerificacionIsNotNull(false).stream()
-		        .filter(usuario -> usuario.getTokenExpiration() != null && usuario.getTokenExpiration().isBefore(ahora))
-		        .forEach(usuario -> {
-		            try {
-		                // Enviar correo de notificación de cuenta eliminada
-		                enviarEmailCuentaEliminada(
-		                    usuario.getEmail(),
-		                    usuario.getNombre()
-		                );
-		                System.out.println("Eliminando usuario con token expirado: " + usuario.getEmail());
-		                usuarioRepository.delete(usuario);
-		            } catch (MessagingException e) {
-		                System.err.println("Error al enviar notificación de eliminación a " + usuario.getEmail() + ": " + e.getMessage());
-		                // Eliminamos el usuario de todas formas
-		                usuarioRepository.delete(usuario);
-		            }
-		        });
-		    }
-		   
-		   /**
-		    * Envía una notificación al propietario cuando un usuario ha valorado su propiedad
-		    */
-		   public void enviarNotificacionNuevaValoracion(
-		           String emailPropietario, 
-		           String nombrePropietario, 
-		           String nombreValorador, 
-		           String tituloPropiedad, 
-		           Integer puntuacion, 
-		           String comentario) throws MessagingException {
-		       
-		       // Preparar el contexto para la plantilla
-		       Context context = new Context();
-		       context.setVariable("nombrePropietario", nombrePropietario);
-		       context.setVariable("nombreValorador", nombreValorador);
-		       context.setVariable("tituloPropiedad", tituloPropiedad);
-		       context.setVariable("puntuacion", puntuacion);
-		       context.setVariable("comentario", comentario);
-		       context.setVariable("appUrl", appUrl);
-		       
-		       // Procesar la plantilla
-		       String contenido = templateEngine.process("emails/nueva-valoracion", context);
-		       
-		       // Crear el mensaje
-		       MimeMessage message = mailSender.createMimeMessage();
-		       MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-		       
-		       helper.setFrom(emailFrom);
-		       helper.setTo(emailPropietario);
-		       helper.setSubject("Nueva valoración para tu propiedad en HomeFlex");
-		       helper.setText(contenido, true); // true = es HTML
-		       
-		       // Enviar el email
-		       mailSender.send(message);
-		       
-		       System.out.println("Email de notificación de nueva valoración enviado a: " + emailPropietario);
-		   }
+    public void enviarEmailAdminNotificacion(
+            String destinatario,
+            String nombreUsuario,
+            String asunto,
+            String mensajeHtml,
+            String accionUrl,
+            String textoBoton
+    ) throws MessagingException {
+        Context ctx = new Context();
+        ctx.setVariable("nombre", nombreUsuario);
+        ctx.setVariable("mensajeHtml", mensajeHtml);
+        ctx.setVariable("accionUrl", accionUrl);
+        ctx.setVariable("textoBoton", textoBoton);
 
-		   /**
-		    * Envía una notificación al usuario cuando el propietario ha respondido a su valoración
-		    */
-		   public void enviarNotificacionRespuestaValoracion(
-		           String emailUsuario,
-		           String nombreUsuario,
-		           String nombrePropietario,
-		           String tituloPropiedad,
-		           String respuesta) throws MessagingException {
-		       
-		       // Preparar el contexto para la plantilla
-		       Context context = new Context();
-		       context.setVariable("nombreUsuario", nombreUsuario);
-		       context.setVariable("nombrePropietario", nombrePropietario);
-		       context.setVariable("tituloPropiedad", tituloPropiedad);
-		       context.setVariable("respuesta", respuesta);
-		       context.setVariable("appUrl", appUrl);
-		       
-		       // Procesar la plantilla
-		       String contenido = templateEngine.process("emails/respuesta-valoracion", context);
-		       
-		       // Crear el mensaje
-		       MimeMessage message = mailSender.createMimeMessage();
-		       MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-		       
-		       helper.setFrom(emailFrom);
-		       helper.setTo(emailUsuario);
-		       helper.setSubject("Han respondido a tu valoración en HomeFlex");
-		       helper.setText(contenido, true); // true = es HTML
-		       
-		       // Enviar el email
-		       mailSender.send(message);
-		       
-		       System.out.println("Email de notificación de respuesta a valoración enviado a: " + emailUsuario);
-		   }
-		   
-		   /**
-		     * Envía un correo notificando el cambio de contraseña y con enlace al login.
-		     */
-		    public void sendPasswordChangeEmail(UsuarioVO usuario) throws Exception {
-		        // Preparar el contexto Thymeleaf
-		        Context ctx = new Context();
-		        ctx.setVariable("nombre", usuario.getNombre());
-		        ctx.setVariable("loginUrl", "http://localhost:8080/login");
-		        ctx.setVariable("soporteUrl", "http://localhost:8080/soporte");
-		        
-		        // Generar el HTML a partir de la plantilla
-		        String htmlBody = templateEngine.process("emails/password-change", ctx);
-		        
-		        // Construir mensaje MIME
-		        MimeMessage mimeMsg = mailSender.createMimeMessage();
-		        MimeMessageHelper helper = new MimeMessageHelper(mimeMsg, "UTF-8");
-		        helper.setTo(usuario.getEmail());
-		        helper.setSubject("Tu contraseña en HomeFlex ha sido cambiada");
-		        helper.setText(htmlBody, true);  // true = contenido HTML
-		        
-		        // Envío
-		        mailSender.send(mimeMsg);
-		    }
+        String contenido = templateEngine.process("emails/admin-notificacion", ctx);
+
+        MimeMessage msg = mailSender.createMimeMessage();
+        MimeMessageHelper h = new MimeMessageHelper(msg, "UTF-8");
+        h.setFrom(emailFrom);
+        h.setTo(destinatario);
+        h.setSubject(asunto);
+        h.setText(contenido, true);
+
+        mailSender.send(msg);
+    }
+
+    /**
+     * Notifica eliminación a petición de admin.
+     */
+    public void enviarEmailCuentaEliminadaPorAdmin(
+            String destinatario,
+            String nombreUsuario,
+            String motivo
+    ) throws MessagingException {
+        Context ctx = new Context();
+        ctx.setVariable("nombre", nombreUsuario);
+        ctx.setVariable("motivo", motivo);
+
+        String contenido = templateEngine.process("emails/admin-eliminacion", ctx);
+
+        MimeMessage msg = mailSender.createMimeMessage();
+        MimeMessageHelper h = new MimeMessageHelper(msg, "UTF-8");
+        h.setFrom(emailFrom);
+        h.setTo(destinatario);
+        h.setSubject("Tu cuenta ha sido eliminada");
+        h.setText(contenido, true);
+
+        mailSender.send(msg);
+    }
 }

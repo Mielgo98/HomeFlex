@@ -2,6 +2,7 @@ package com.example.demo.propiedad.service;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.Month;
 import java.util.ArrayList;
@@ -105,6 +106,7 @@ public class PropiedadService {
     /**
      * Realiza una búsqueda avanzada de propiedades
      */
+   
     public Page<PropiedadDTO> busquedaAvanzada(
             String ciudad, 
             String pais, 
@@ -115,22 +117,26 @@ public class PropiedadService {
             Double precioMax,
             int pagina, 
             int tamanoPagina) {
-        
+
         Pageable pageable = PageRequest.of(pagina, tamanoPagina, Sort.by("fechaCreacion").descending());
-        
-        // Verificar si hay filtros de precio
+
+        // Ajustar parámetros vacíos a null
+        ciudad = (ciudad != null && ciudad.trim().isEmpty()) ? null : ciudad.trim();
+        pais = (pais != null && pais.trim().isEmpty()) ? null : pais.trim();
+
+        // Llamar método correcto del repository según precios
         if (precioMin != null || precioMax != null) {
-            // Utilizar la consulta optimizada que incluye precio
             return propiedadRepository.busquedaAvanzadaConPrecio(
                     ciudad, pais, capacidad, dormitorios, banos, precioMin, precioMax, pageable)
                     .map(PropiedadDTO::new);
         } else {
-            // Usar la consulta estándar
             return propiedadRepository.busquedaAvanzada(
                     ciudad, pais, capacidad, dormitorios, banos, pageable)
                     .map(PropiedadDTO::new);
         }
     }
+
+    
     
     /**
      * Crea una nueva propiedad

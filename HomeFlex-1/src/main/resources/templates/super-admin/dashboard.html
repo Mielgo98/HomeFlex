@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+  <!-- Inserta el fragmento head con el título 'Panel de Administración' -->
+  <head th:replace="~{fragments/head :: head('Panel de Administración')}"></head>
+
+  <body>
+    <!-- Inserta el navbar pasando el rol 'super-admin' -->
+  <head th:replace="~{fragments/navbar :: navbar('super-admin')}"></head>
+
+    <div class="container mt-5">
+      <h1 class="mb-4">Panel de Administración</h1>
+
+      <!-- Usuarios por Rol -->
+      <div class="card mb-4">
+        <div class="card-header">Usuarios por Rol</div>
+        <div class="card-body p-0">
+          <table class="table table-striped mb-0">
+            <thead class="table-light">
+              <tr><th>Rol</th><th>Cantidad</th></tr>
+            </thead>
+            <tbody>
+              <tr th:each="entry : ${usuariosPorRol}">
+                <td th:text="${entry.key}">ROL</td>
+                <td th:text="${entry.value}">0</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Accesos Recientes -->
+      <div class="card mb-4">
+        <div class="card-header">Accesos Recientes</div>
+        <div class="card-body p-0">
+          <table class="table table-hover mb-0">
+            <thead class="table-light">
+              <tr><th>Usuario</th><th>Acción</th><th>Fecha</th></tr>
+            </thead>
+            <tbody>
+              <tr th:each="log : ${accesosRecientes}">
+                <td th:text="${log.usuario}">usuario</td>
+                <td th:text="${log.accion}">acción</td>
+                <td th:text="${log.fecha}">fecha</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Acciones por Tipo -->
+      <div class="card mb-4">
+        <div class="card-header">Acciones por Tipo</div>
+        <div class="card-body p-0">
+          <table class="table mb-0">
+            <thead class="table-light">
+              <tr><th>Tipo</th><th>Cantidad</th></tr>
+            </thead>
+            <tbody>
+              <tr th:each="entry : ${accionesPorTipo}">
+                <td th:text="${entry.key}">TIPO</td>
+                <td th:text="${entry.value}">0</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+        <!-- Gráfico de Accesos Últimas 24h -->
+    <div class="card mb-4">
+      <div class="card-header">Accesos Últimas 24h</div>
+      <div class="card-body">
+        <canvas id="accesosChart" width="800" height="300"></canvas>
+      </div>
+    </div>
+
+    <!-- Scripts de Bootstrap y Chart.js -->
+    <script th:src="@{/webjars/bootstrap/js/bootstrap.bundle.min.js}"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Script con th:inline para procesar los arrays -->
+    <script th:inline="javascript">
+      /*<![CDATA[*/
+      const horas = /*[[${horasAcceso}]]*/ [];
+      const conteos = /*[[${conteosAcceso}]]*/ [];
+      /*]]>*/
+
+      const ctx = document.getElementById('accesosChart').getContext('2d');
+      new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: horas,
+          datasets: [{
+            label: 'Accesos',
+            data: conteos,
+            fill: false,
+            tension: 0.1,
+            borderWidth: 2
+          }]
+        },
+        options: {
+          scales: {
+            x: { title: { display: true, text: 'Hora' } },
+            y: { title: { display: true, text: 'Número de accesos' }, beginAtZero: true }
+          },
+          plugins: {
+            legend: { display: false }
+          }
+        }
+      });
+    </script>
+  </body>
+</html>
+    

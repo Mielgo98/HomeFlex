@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
 
+import com.example.demo.propiedad.model.PropiedadVO;
 import com.example.demo.rol.model.RolVO;
 
 import jakarta.persistence.Column;
@@ -120,4 +121,15 @@ public class UsuarioVO {
         // Se usa un valor constante si el ID es nulo
         return id != null ? id.hashCode() : 31;
     }
+    
+ // En UsuarioVO.java añade esta relación
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+        name = "usuario_propiedades_favoritas",
+        joinColumns = @JoinColumn(name = "usuario_id"),
+        inverseJoinColumns = @JoinColumn(name = "propiedad_id")
+    )
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    private Set<PropiedadVO> propiedadesFavoritas = new HashSet<>();
 }

@@ -1,0 +1,19 @@
+<div th:fragment="acciones()">
+  <ul class="navbar-nav me-auto">
+    <!-- Mensajes -->
+    <li class="nav-item" sec:authorize="isAuthenticated()">
+      <a class="nav-link position-relative" th:href="@{/mensajes/lista}">
+        <i class="fas fa-comments"></i> Mensajes
+        <span id="contador-mensajes" 
+              class="badge bg-danger rounded-circle position-absolute d-none" 
+              style="top: 0; right: 0; transform: translate(50%, -50%);">
+          0
+        </span>
+      </a>
+    </li>
+    <!-- Asistente -->
+    <li class="nav-item">
+      <a class="nav-link" th:href="@{/chatbot}">Asistente</a>
+    </li>
+  </ul>
+</div>

@@ -1,0 +1,29 @@
+<!-- src/main/resources/templates/emails/admin-notificacion.html -->
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+  <head>
+    <meta charset="UTF-8">
+    <title>Notificación de Administrador</title>
+    <style>
+      /* estilos inline básicos para email */
+      .button {
+        display: inline-block;
+        padding: 10px 20px;
+        background-color: #0069D9;
+        color: #fff;
+        text-decoration: none;
+        border-radius: 4px;
+      }
+    </style>
+  </head>
+  <body>
+    <p>Hola <strong th:text="${nombre}">Usuario</strong>,</p>
+    <div th:utext="${mensajeHtml}">
+      <!-- contenido HTML desde el formulario -->
+    </div>
+    <p th:if="${accionUrl}">
+      <a th:href="${accionUrl}" class="button" th:text="${textoBoton}">Acción</a>
+    </p>
+    <p>Saludos,<br/>Equipo HomeFlex</p>
+  </body>
+</html>
