@@ -1,0 +1,48 @@
+.property-reviews h2 {
+  margin-bottom: 1rem;
+}
+
+.reviews-container .card {
+  transition: all 0.3s ease;
+}
+
+.reviews-container .card:hover {
+  box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+}
+
+.review-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+/* estilo de las estrellas */
+.star-rating {
+  font-size: 1.5rem;
+  display: flex;
+  justify-content: center;
+  margin-bottom: 1rem;
+}
+
+.star-rating span {
+  cursor: pointer;
+  color: #ddd;
+  transition: color 0.2s ease;
+  margin: 0 0.1rem;
+}
+
+.star-rating span:hover {
+  color: #ffdb58;
+}
+
+.star-rating span.selected {
+  color: #ffc107;
+}
+
+/* Estilos para iconos Bootstrap */
+.text-warning .bi-star-fill {
+  color: #ffc107;
+}
+
+.text-warning .bi-star {
+  color: #ddd;
+}

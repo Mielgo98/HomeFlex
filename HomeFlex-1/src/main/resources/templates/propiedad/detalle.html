@@ -1,211 +1,312 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title th:text="${propiedad.titulo} + ' – HomeFlex'">Detalle de Propiedad</title>
-    
-    <!-- CSS común -->
-    <link th:replace="fragments/head :: head(${propiedad.titulo} + ' – Detalle')">
-    
-    <!-- Leaflet para mapa -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
-    
-    <!-- LightGallery para galería de imágenes -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lightgallery@2.7.0/css/lightgallery.min.css">
-    
-    <!-- Estilos específicos para detalle de propiedad -->
-    <link rel="stylesheet" th:href="@{/css/property-detail.css}"/>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title th:text="${propiedad.titulo} + ' – HomeFlex'">Detalle de Propiedad</title>
+
+  <!-- CSS común -->
+  <link th:replace="~{fragments/head :: head(${propiedad.titulo} + ' – Detalle')}"/>
+
+  <!-- Leaflet -->
+  <link rel="stylesheet"
+        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+
+  <!-- LightGallery -->
+  <link rel="stylesheet"
+        href="https://cdn.jsdelivr.net/npm/lightgallery@2.7.0/css/lightgallery.min.css"/>
+
+<!-- SweetAlert2 -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+
+  <!-- Estilos específicos -->
+  <link rel="stylesheet" th:href="@{/css/property-detail.css}"/>
+  <link rel="stylesheet" th:href="@{/css/valoraciones.css}"/>
 </head>
 <body>
-    <!-- Header común -->
-    <div th:replace="fragments/header :: header"></div>
+  <div th:replace="~{fragments/header :: header}"></div>
 
-    <main class="container my-4">
-        <!-- Ruta de navegación -->
-        <nav aria-label="breadcrumb" class="mb-3">
-            <ol class="breadcrumb">
-                <li class="breadcrumb-item"><a th:href="@{/}">Inicio</a></li>
-                <li class="breadcrumb-item"><a th:href="@{/propiedades}">Propiedades</a></li>
-                <li class="breadcrumb-item active" aria-current="page" th:text="${propiedad.titulo}">Título Propiedad</li>
-            </ol>
-        </nav>
+  <main class="container my-4">
+    <!-- Datos del usuario actual -->
+    <div id="userData" class="d-none"
+         th:if="${#authentication.principal != null}"
+         th:data-current-user-id="${@usuarioService.buscarPorUsername(#authentication.name).id}">
+    </div>
 
-        <!-- Título y subtítulo -->
-        <header class="property-header mb-4">
-            <h1 th:text="${propiedad.titulo}" class="property-title">Título de la propiedad</h1>
-            <p class="property-location">
-                <i class="bi bi-geo-alt-fill"></i>
-                <span th:text="${propiedad.direccion + ', ' + propiedad.ciudad + ', ' + propiedad.pais}">Dirección, Ciudad, País</span>
-            </p>
-        </header>
+   
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-3">
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a th:href="@{/}">Inicio</a></li>
+        <li class="breadcrumb-item"><a th:href="@{/propiedades}">Propiedades</a></li>
+        <li class="breadcrumb-item active" aria-current="page"
+            th:text="${propiedad.titulo}">Título Propiedad</li>
+      </ol>
+    </nav>
 
-        <div class="row">
-            <!-- Columna principal: Galería y descripción -->
-            <div class="col-lg-8 mb-4">
-                <!-- Galería de imágenes -->
-                <div class="property-gallery mb-4" id="lightgallery">
-                    <div th:each="foto : ${propiedad.fotos}" class="gallery-item" th:attr="data-src=${foto.url}">
-                        <img th:src="${foto.url}" th:alt="${propiedad.titulo}" class="img-fluid rounded">
-                    </div>
-                    <!-- Fallback si no hay fotos -->
-                    <div th:if="${#lists.isEmpty(propiedad.fotos)}" class="gallery-item" data-src="/images/property-placeholder.jpg">
-                        <img src="/images/property-placeholder.jpg" th:alt="${propiedad.titulo}" class="img-fluid rounded">
-                    </div>
-                </div>
+    <!-- Encabezado de propiedad -->
+    <header class="property-header mb-4">
+      <h1 th:text="${propiedad.titulo}" class="property-title">Título de la propiedad</h1>
+      <p class="property-location">
+        <i class="bi bi-geo-alt-fill"></i>
+        <span th:text="${propiedad.direccion + ', ' + propiedad.ciudad + ', ' + propiedad.pais}">
+          Dirección, Ciudad, País
+        </span>
+      </p>
+    </header>
 
-                <!-- Sección de descripción -->
-                <section class="property-description mb-4">
-                    <h2>Descripción</h2>
-                    <div class="description-content" th:utext="${propiedad.descripcion}">
-                        Descripción detallada...
-                    </div>
-                </section>
+    <div class="row">
+      <!-- Columna principal: Galería, descripción y mapa -->
+      <div class="col-lg-8 mb-4">
 
-                <!-- Mapa -->
-                <section class="property-map mb-4">
-                    <h2>Ubicación</h2>
-                    <input type="hidden" id="lat" th:value="${propiedad.latitud}"/>
-                    <input type="hidden" id="lon" th:value="${propiedad.longitud}"/>
-                    <div id="map" class="rounded"></div>
-                    <div class="mt-2 d-flex align-items-center flex-wrap">
-                        <div class="me-auto d-flex align-items-center flex-wrap">
-                            <p class="text-muted small me-3 mb-0">
-                                <i class="bi bi-info-circle"></i> La ubicación mostrada es aproximada
-                            </p>
-                            <p class="text-primary small mb-0">
-                                <i class="bi bi-cursor-fill"></i> Haz clic en el marcador para ver en Google Maps
-                            </p>
-                        </div>
-                        <a th:href="'https://www.google.com/maps/search/?api=1&query=' + ${propiedad.latitud} + ',' + ${propiedad.longitud}" 
-                           target="_blank" 
-                           class="btn btn-sm btn-outline-primary mt-2 mt-md-0">
-                            <i class="bi bi-google me-1"></i> Abrir en Google Maps
-                        </a>
-                    </div>
-                </section>
-            </div>
-
-            <!-- Columna lateral: Precios, características y reserva -->
-            <div class="col-lg-4">
-                <!-- Tarjeta de precios -->
-                <div class="card shadow-sm mb-4">
-                    <div class="card-header bg-primary text-white">
-                        <h3 class="h5 mb-0">Información de precios</h3>
-                    </div>
-                    <div class="card-body">
-                        <div class="price-item">
-                            <span class="price-label">Por noche:</span>
-                            <span class="price-value" th:text="${#numbers.formatDecimal(propiedad.precioDia, 1, 'COMMA', 2, 'POINT')} + ' €'">100 €</span>
-                        </div>
-                        <div class="price-item" th:if="${propiedad.precioSemana != null}">
-                            <span class="price-label">Por semana:</span>
-                            <span class="price-value" th:text="${#numbers.formatDecimal(propiedad.precioSemana, 1, 'COMMA', 2, 'POINT')} + ' €'">600 €</span>
-                        </div>
-                        <hr>
-                        <a th:href="@{'/reservas/nueva/' + ${propiedad.id}}" class="btn btn-primary d-block">Reservar ahora</a>
-                    </div>
-                </div>
-
-                <!-- Características de la propiedad -->
-                <div class="card shadow-sm mb-4">
-                    <div class="card-header bg-light">
-                        <h3 class="h5 mb-0">Características</h3>
-                    </div>
-                    <div class="card-body">
-                        <ul class="property-features">
-                            <li>
-                                <i class="bi bi-people-fill"></i>
-                                <span th:text="${propiedad.capacidad + ' huéspedes'}">4 huéspedes</span>
-                            </li>
-                            <li>
-                                <i class="bi bi-house-door-fill"></i>
-                                <span th:text="${propiedad.dormitorios + ' dormitorios'}">2 dormitorios</span>
-                            </li>
-                            <li>
-                                <i class="bi bi-droplet-fill"></i>
-                                <span th:text="${propiedad.banos + ' baños'}">1 baño</span>
-                            </li>
-                        </ul>
-                    </div>
-                </div>
-
-                <!-- Información del propietario -->
-                <div class="card shadow-sm mb-4">
-                    <div class="card-header bg-light">
-                        <h3 class="h5 mb-0">Anfitrión</h3>
-                    </div>
-                    <div class="card-body host-info">
-                        <div class="d-flex align-items-center mb-3">
-                            <div class="host-avatar me-3">
-                                <img th:if="${propiedad.propietario.fotoPerfil}" th:src="${propiedad.propietario.fotoPerfil}" alt="Foto de perfil" class="rounded-circle">
-                                <img th:unless="${propiedad.propietario.fotoPerfil}" src="/images/default-avatar.png" alt="Foto de perfil" class="rounded-circle">
-                            </div>
-                            <div>
-                                <h4 class="h6 mb-1" th:text="${propiedad.propietario.nombre + ' ' + propiedad.propietario.apellidos}">Nombre del propietario</h4>
-                                <p class="text-muted small mb-0">
-                                    <i class="bi bi-star-fill text-warning"></i> Valoración media: 4.5/5
-                                </p>
-                            </div>
-                        </div>
-                        <a th:href="@{/mensajes/chat(contactoId=${propiedad.propietario.id},propiedadId=${propiedad.id})}" 
-   							class="btn btn-outline-primary btn-sm d-block">Contactar</a>
-                    </div>
-                </div>
-
-                <!-- Sección de disponibilidad (simplificada) -->
-                <div class="card shadow-sm">
-                    <div class="card-header bg-light">
-                        <h3 class="h5 mb-0">Disponibilidad</h3>
-                    </div>
-                    <div class="card-body">
-                        <p class="mb-0">Para consultar la disponibilidad, inicia el proceso de reserva.</p>
-                        <a th:href="@{'/reservas/nueva/' + ${propiedad.id}}" class="btn btn-outline-primary btn-sm mt-2 d-block">Ver calendario</a>
-                    </div>
-                </div>
-            </div>
+        <!-- Galería de imágenes -->
+        <div id="lightgallery" class="property-gallery mb-4">
+          <div th:each="foto : ${propiedad.fotos}" class="gallery-item" th:attr="data-src=${foto.url}">
+            <img th:src="${foto.url}"
+                 th:alt="${propiedad.titulo}"
+                 class="img-fluid rounded">
+          </div>
+          <div th:if="${#lists.isEmpty(propiedad.fotos)}" class="gallery-item" data-src="/images/property-placeholder.jpg">
+            <img src="/images/property-placeholder.jpg"
+                 th:alt="${propiedad.titulo}"
+                 class="img-fluid rounded">
+          </div>
         </div>
 
-        <!-- Valoraciones (opcional) -->
-        <section class="property-reviews mt-4">
-            <h2>Valoraciones</h2>
-            <!-- Si hay valoraciones, mostrarlas -->
-            <div th:if="${not #lists.isEmpty(valoraciones)}" class="reviews-container">
-                <!-- Contenido de valoraciones -->
-            </div>
-            <!-- Si no hay valoraciones -->
-            <div th:if="${#lists.isEmpty(valoraciones)}" class="alert alert-info">
-                <p class="mb-0">Esta propiedad aún no tiene valoraciones.</p>
-            </div>
-            <!-- Enlace para valorar (solo si el usuario ha estado alojado) -->
-            <div class="mt-3">
-                <a th:href="@{'/valoraciones/nueva/' + ${propiedad.id}}" class="btn btn-outline-primary">Escribir una valoración</a>
-            </div>
+        <!-- Descripción -->
+        <section class="property-description mb-4">
+          <h2>Descripción</h2>
+          <div class="description-content" th:utext="${propiedad.descripcion}">
+            Descripción detallada...
+          </div>
         </section>
 
-        <!-- Propiedades similares (opcional) -->
-        <section class="similar-properties mt-5">
-            <h2>Propiedades similares</h2>
-            <div class="row">
-                <!-- Aquí irían las propiedades similares -->
+        <!-- Mapa -->
+        <section class="property-map mb-4">
+          <h2>Ubicación</h2>
+          <input type="hidden" id="lat" th:value="${propiedad.latitud}"/>
+          <input type="hidden" id="lon" th:value="${propiedad.longitud}"/>
+          <div id="map" class="rounded" style="height: 300px;"></div>
+          <div class="mt-2 d-flex align-items-center flex-wrap">
+            <div class="me-auto d-flex align-items-center flex-wrap">
+              <p class="text-muted small me-3 mb-0">
+                <i class="bi bi-info-circle"></i> La ubicación mostrada es aproximada
+              </p>
+              <p class="text-primary small mb-0">
+                <i class="bi bi-cursor-fill"></i> Haz clic en el marcador para ver en Google Maps
+              </p>
             </div>
+            <a th:href="'https://www.google.com/maps/search/?api=1&query=' 
+                          + ${propiedad.latitud} + ',' + ${propiedad.longitud}"
+               target="_blank"
+               class="btn btn-sm btn-outline-primary mt-2 mt-md-0">
+              <i class="bi bi-google me-1"></i> Abrir en Google Maps
+            </a>
+          </div>
         </section>
-    </main>
+      </div>
 
-    <!-- Footer común -->
-    <div th:replace="fragments/footer :: footer"></div>
+      <!-- Columna lateral: precios, características, anfitrión, disponibilidad -->
+      <div class="col-lg-4">
 
-    <!-- Scripts -->
-    <!-- jQuery (requerido para LightGallery) -->
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    
-    <!-- LightGallery para galería de imágenes -->
-    <script src="https://cdn.jsdelivr.net/npm/lightgallery@2.7.0/lightgallery.min.js"></script>
-    
-    <!-- Leaflet JS para mapa -->
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-    
-    <!-- Script personalizado para detalle de propiedad -->
-    <script th:src="@{/js/property-detail.js}"></script>
+        <!-- Información de precios -->
+        <div class="card shadow-sm mb-4">
+          <div class="card-header bg-primary text-white">
+            <h3 class="h5 mb-0">Información de precios</h3>
+          </div>
+          <div class="card-body">
+            <div class="price-item">
+              <span class="price-label">Por noche:</span>
+              <span class="price-value"
+                    th:text="${#numbers.formatDecimal(propiedad.precioDia,1,'COMMA',2,'POINT')} + ' €'">
+                100 €
+              </span>
+            </div>
+            <div class="price-item" th:if="${propiedad.precioSemana != null}">
+              <span class="price-label">Por semana:</span>
+              <span class="price-value"
+                    th:text="${#numbers.formatDecimal(propiedad.precioSemana,1,'COMMA',2,'POINT')} + ' €'">
+                600 €
+              </span>
+            </div>
+            <hr>
+            <a th:href="@{'/reservas/nueva/' + ${propiedad.id}}"
+               class="btn btn-primary d-block">Reservar ahora</a>
+          </div>
+        </div>
+
+        <!-- Características -->
+        <div class="card shadow-sm mb-4">
+          <div class="card-header bg-light">
+            <h3 class="h5 mb-0">Características</h3>
+          </div>
+          <div class="card-body">
+            <ul class="property-features">
+              <li>
+                <i class="bi bi-people-fill"></i>
+                <span th:text="${propiedad.capacidad + ' huéspedes'}">4 huéspedes</span>
+              </li>
+              <li>
+                <i class="bi bi-house-door-fill"></i>
+                <span th:text="${propiedad.dormitorios + ' dormitorios'}">2 dormitorios</span>
+              </li>
+              <li>
+                <i class="bi bi-droplet-fill"></i>
+                <span th:text="${propiedad.banos + ' baños'}">1 baño</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Anfitrión -->
+        <div class="card shadow-sm mb-4">
+          <div class="card-header bg-light">
+            <h3 class="h5 mb-0">Anfitrión</h3>
+          </div>
+          <div class="card-body host-info">
+            <div class="d-flex align-items-center mb-3">
+              <div class="host-avatar me-3">
+                <img th:if="${propiedad.propietario.fotoPerfil}"
+                     th:src="${propiedad.propietario.fotoPerfil}"
+                     alt="Foto de perfil" class="rounded-circle" width="50" height="50">
+                <img th:unless="${propiedad.propietario.fotoPerfil}"
+                     src="/images/default-avatar.png"
+                     alt="Foto de perfil" class="rounded-circle" width="50" height="50">
+              </div>
+              <div>
+                <h4 class="h6 mb-1"
+                    th:text="${propiedad.propietario.nombre + ' ' + propiedad.propietario.apellidos}">
+                  Nombre del propietario
+                </h4>
+                <p class="text-muted small mb-0">
+                  <i class="bi bi-star-fill text-warning"></i> Valoración media: 4.5/5
+                </p>
+              </div>
+            </div>
+            <a th:href="@{/mensajes/chat(contactoId=${propiedad.propietario.id},propiedadId=${propiedad.id})}"
+               class="btn btn-outline-primary btn-sm d-block">Contactar</a>
+          </div>
+        </div>
+
+        <!-- Disponibilidad -->
+        <div class="card shadow-sm">
+          <div class="card-header bg-light">
+            <h3 class="h5 mb-0">Disponibilidad</h3>
+          </div>
+          <div class="card-body">
+            <p class="mb-0">Para consultar la disponibilidad, inicia el proceso de reserva.</p>
+            <a th:href="@{'/reservas/nueva/' + ${propiedad.id}}"
+               class="btn btn-outline-primary btn-sm mt-2 d-block">Ver calendario</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- Valoraciones -->
+    <section class="property-reviews mt-5">
+      <h2>Valoraciones</h2>
+      <div id="valoraciones-list" class="reviews-container mb-3">
+        <div class="spinner-border" role="status">
+          <span class="visually-hidden">Cargando…</span>
+        </div>
+      </div>
+      <button id="btnOpenReviewModal" class="btn btn-outline-primary">
+        Escribir una valoración
+      </button>
+    </section>
+
+  
+  </main>
+
+  <!-- Modal de nueva/editar valoración -->
+  <div class="modal fade" id="reviewModal" tabindex="-1"
+       aria-labelledby="reviewModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="reviewModalLabel">Nueva valoración</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        <div class="modal-body">
+          <!-- Comentario -->
+          <div class="mb-3">
+            <label for="reviewComment" class="form-label">Comentario</label>
+            <textarea id="reviewComment" class="form-control" rows="3"
+                      placeholder="Escribe tu opinión aquí…"></textarea>
+          </div>
+
+          <!-- Puntuación global -->
+          <div class="mb-3">
+            <label class="form-label">Puntuación global</label>
+            <div id="ratingGeneral" class="star-rating mb-3">
+              <span data-value="1">★</span>
+              <span data-value="2">★</span>
+              <span data-value="3">★</span>
+              <span data-value="4">★</span>
+              <span data-value="5">★</span>
+            </div>
+          </div>
+
+          <!-- Sub-métricas -->
+          <div class="mb-3">
+            <label class="form-label">Limpieza</label>
+            <div id="ratingLimpieza" class="star-rating submetric">
+              <span data-value="1">★</span><span data-value="2">★</span>
+              <span data-value="3">★</span><span data-value="4">★</span>
+              <span data-value="5">★</span>
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Ubicación</label>
+            <div id="ratingUbicacion" class="star-rating submetric">
+              <span data-value="1">★</span><span data-value="2">★</span>
+              <span data-value="3">★</span><span data-value="4">★</span>
+              <span data-value="5">★</span>
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Comunicación</label>
+            <div id="ratingComunicacion" class="star-rating submetric">
+              <span data-value="1">★</span><span data-value="2">★</span>
+              <span data-value="3">★</span><span data-value="4">★</span>
+              <span data-value="5">★</span>
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Calidad</label>
+            <div id="ratingCalidad" class="star-rating submetric">
+              <span data-value="1">★</span><span data-value="2">★</span>
+              <span data-value="3">★</span><span data-value="4">★</span>
+              <span data-value="5">★</span>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button id="btnSubmitReview" type="button" class="btn btn-primary">
+            Enviar valoración
+          </button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+            Cancelar
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div th:replace="~{fragments/footer :: footer}"></div>
+
+  <!-- JS externos -->
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lightgallery@2.7.0/lightgallery.min.js"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script th:src="@{/js/property-detail.js}"></script>
+
+  <script th:inline="javascript">
+    const propiedadId = /*[[${propiedad.id}]]*/ 0;
+  </script>
+  <script th:src="@{/js/valoraciones.js}"></script>
 </body>
 </html>

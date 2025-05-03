@@ -1,9 +1,4 @@
-// propietario-propiedades.js
-
-// --- Helpers / configuración ---
-
 // Obtiene el valor de una cookie
-console.log("RULANDO")
 function getCookie(name) {
   const matches = document.cookie.match(new RegExp(
     "(?:^|; )" +
@@ -13,45 +8,33 @@ function getCookie(name) {
   return matches ? decodeURIComponent(matches[1]) : null;
 }
 
-// Llamada genérica a Nominatim para geocodificar una dirección
-async function geocode(address, city) {
-	console.log("llamando")
-  const q = encodeURIComponent(`${address}, ${city}`);
-  const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${q}`;
-  const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
-  if (!res.ok) throw new Error('Error al geocodificar');
-  const data = await res.json();
-  if (!data.length) return null;
-  return {
-    lat: data[0].lat,
-    lon: data[0].lon
-  };
-}
+// --- Funciones principales ---
 
-// --- Listado, editar y eliminar propiedades ---
-
-function cargarMisPropiedades(page = 0, size = 20) {
+// Carga la lista de propiedades del propietario
+async function cargarMisPropiedades(page = 0, size = 20) {
   const jwt = getCookie('jwt_token');
-  fetch(`/api/propietario/propiedades?page=${page}&size=${size}`, {
-    headers: {
-      'Authorization': 'Bearer ' + jwt,
-      'Accept': 'application/json'
-    }
-  })
-    .then(res => {
-      if (res.status === 401) {
-        window.location = '/login';
-        throw new Error('No autorizado');
+  try {
+    const res = await fetch(`/api/propietario/propiedades?page=${page}&size=${size}`, {
+      headers: {
+        'Authorization': 'Bearer ' + jwt,
+        'Accept': 'application/json'
       }
-      return res.json();
-    })
-    .then(data => renderPropiedades(data))
-    .catch(err => console.error(err));
+    });
+    if (res.status === 401) {
+      window.location = '/login';
+      return;
+    }
+    const data = await res.json();
+    renderPropiedades(data);
+  } catch (err) {
+    console.error(err);
+    Swal.fire('Error', 'No se pudieron cargar tus propiedades.', 'error');
+  }
 }
 
+// Renderiza las tarjetas de propiedades
 function renderPropiedades(page) {
   const container = document.getElementById('propiedades-container');
-  if (!container) return console.error('No existe #propiedades-container');
   container.innerHTML = '';
   page.content.forEach(prop => {
     const card = document.createElement('div');
@@ -68,6 +51,7 @@ function renderPropiedades(page) {
             <p class="card-text"><small class="text-muted">${prop.ciudad}, ${prop.pais}</small></p>
             <button class="btn btn-sm btn-primary btn-editar" data-id="${prop.id}">Editar</button>
             <button class="btn btn-sm btn-danger btn-eliminar" data-id="${prop.id}">Eliminar</button>
+            <button class="btn btn-sm btn-info btn-view-reviews" data-id="${prop.id}">Ver valoraciones</button>
           </div>
         </div>
       </div>
@@ -75,12 +59,12 @@ function renderPropiedades(page) {
     container.appendChild(card);
   });
 
+  // Delegar eventos de editar/eliminar/ver valoraciones
   document.querySelectorAll('.btn-editar').forEach(btn =>
     btn.addEventListener('click', () => {
       window.location = `/propietario/propiedades/editar/${btn.dataset.id}`;
     })
   );
-
   document.querySelectorAll('.btn-eliminar').forEach(btn =>
     btn.addEventListener('click', () => {
       Swal.fire({
@@ -95,24 +79,21 @@ function renderPropiedades(page) {
       });
     })
   );
+  document.querySelectorAll('.btn-view-reviews').forEach(btn =>
+    btn.addEventListener('click', () => abrirModalValoraciones(btn.dataset.id))
+  );
 }
 
+// Elimina una propiedad
 function eliminarPropiedad(id) {
   const jwt = getCookie('jwt_token');
   fetch(`/api/propietario/propiedades/${id}`, {
     method: 'DELETE',
-    headers: {
-      'Authorization': 'Bearer ' + jwt
-    }
+    headers: { 'Authorization': 'Bearer ' + jwt }
   })
     .then(res => {
-      if (res.status === 401) {
-        window.location = '/login';
-        throw new Error('No autorizado');
-      }
+      if (res.status === 401) window.location = '/login';
       if (!res.ok) throw new Error('Error al eliminar');
-    })
-    .then(() => {
       Swal.fire({
         title: '¡Eliminada!',
         text: 'Tu propiedad ha sido eliminada.',
@@ -124,58 +105,120 @@ function eliminarPropiedad(id) {
     })
     .catch(err => {
       console.error(err);
-      Swal.fire({
-        title: 'Error',
-        text: 'No se pudo eliminar la propiedad.',
-        icon: 'error'
-      });
+      Swal.fire('Error', 'No se pudo eliminar la propiedad.', 'error');
     });
 }
 
-// --- Geocodificación y envío de formulario de creación/edición ---
+// --- Modal de valoraciones y respuestas ---
 
-async function geocodeAndSubmit(event) {
-  event.preventDefault();
-  const form = event.target;
-  const address = form.querySelector('input[name="direccion"]').value.trim();
-  const city    = form.querySelector('input[name="ciudad"]').value.trim();
-  if (!address || !city) {
-    return Swal.fire('Faltan datos', 'Debes indicar dirección y ciudad.', 'warning');
-  }
+const reviewsModalEl = document.getElementById('reviewsModal');
+const reviewsModal   = new bootstrap.Modal(reviewsModalEl);
+const reviewsList    = document.getElementById('reviews-list');
 
-  Swal.fire({
-    title: 'Obteniendo coordenadas…',
-    allowOutsideClick: false,
-    didOpen: () => Swal.showLoading()
-  });
+function abrirModalValoraciones(propiedadId) {
+  // Ajustar título del modal
+  reviewsModalEl.querySelector('.modal-title').textContent =
+    `Valoraciones de la propiedad #${propiedadId}`;
 
-  try {
-    const pos = await geocode(address, city);
-    if (!pos) {
-      Swal.close();
-      return Swal.fire('No encontrado', 'No hemos podido geocodificar esa dirección.', 'error');
-    }
-    // Rellenamos campos ocultos
-    form.querySelector('input[name="latitud"]').value  = pos.lat;
-    form.querySelector('input[name="longitud"]').value = pos.lon;
+  // Mostrar loader
+  reviewsList.innerHTML = `
+    <div class="text-center my-4">
+      <div class="spinner-border" role="status"></div>
+    </div>`;
 
-    // Ahora enviamos el formulario (por defecto POST/PUT)
-    form.submit();
+  const jwt = getCookie('jwt_token');
+  fetch(`/api/valoraciones/propiedad/${propiedadId}`, {
+    headers: { 'Authorization': 'Bearer ' + jwt }
+  })
+    .then(res => res.ok ? res.json() : Promise.reject(res.status))
+    .then(page => {
+      const vals = page.content || [];
+      if (!vals.length) {
+        reviewsList.innerHTML = `<p class="text-center">No hay valoraciones aún.</p>`;
+      } else {
+        reviewsList.innerHTML = vals.map(v => {
+          const fechaVal = new Date(v.fechaCreacion).toLocaleDateString();
+          const stars    = '★'.repeat(v.puntuacion) + '☆'.repeat(5 - v.puntuacion);
 
-  } catch (err) {
-    console.error(err);
-    Swal.fire('Error', 'Hubo un problema al consultar la API de geocodificación.', 'error');
-  }
+          if (v.respuestaPropietario) {
+            const fechaResp = new Date(v.fechaRespuesta).toLocaleDateString();
+            return `
+              <div class="mb-4">
+                <h6>${v.usuarioNombre} <small class="text-muted">${fechaVal}</small></h6>
+                <p>${stars}</p>
+                <p>${v.comentario}</p>
+                <div class="border rounded p-2 bg-light">
+                  <strong>Tu respuesta</strong> <small class="text-muted">${fechaResp}</small>
+                  <p>${v.respuestaPropietario}</p>
+                </div>
+              </div>
+            `;
+          } else {
+            return `
+              <div class="mb-4">
+                <h6>${v.usuarioNombre} <small class="text-muted">${fechaVal}</small></h6>
+                <p>${stars}</p>
+                <p>${v.comentario}</p>
+                <textarea id="resp-${v.id}"
+                          class="form-control mb-2"
+                          placeholder="Escribe tu respuesta..."></textarea>
+                <button class="btn btn-sm btn-success btn-send-response"
+                        data-id="${v.id}"
+                        data-prop="${propiedadId}">
+                  Enviar respuesta
+                </button>
+              </div>
+            `;
+          }
+        }).join('');
+
+        // Enlazar envío de respuesta
+        reviewsList.querySelectorAll('.btn-send-response').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const reviewId  = btn.dataset.id;
+            const propId    = btn.dataset.prop;
+            const respuesta = document.getElementById(`resp-${reviewId}`).value.trim();
+
+            // Validar longitud mínima
+            if (!respuesta || respuesta.length < 10) {
+              return Swal.fire('Atención', 'La respuesta debe tener al menos 10 caracteres.', 'info');
+            }
+
+            // Construir cuerpo con clave valoracionId
+            fetch('/api/valoraciones/responder', {
+              method: 'POST',
+              headers: {
+                'Authorization': 'Bearer ' + jwt,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                valoracionId: reviewId,
+                respuesta: respuesta
+              })
+            })
+            .then(r => r.ok ? r.json() : Promise.reject(r.status))
+            .then(() => {
+              Swal.fire('¡Listo!', 'Respuesta enviada correctamente.', 'success');
+              abrirModalValoraciones(propId);  // recarga el modal
+            })
+            .catch(err => {
+              console.error(err);
+              Swal.fire('Error', 'No se pudo enviar la respuesta.', 'error');
+            });
+          });
+        });
+      }
+    })
+    .catch(() => {
+      Swal.fire('Error', 'No se pudieron cargar las valoraciones.', 'error');
+      reviewsList.innerHTML = '';
+    });
+
+  reviewsModal.show();
 }
 
-// --- Inicialización al cargar la página ---
+// --- Inicialización ---
 
 document.addEventListener('DOMContentLoaded', () => {
   cargarMisPropiedades();
-
-  // Si existe el formulario de propiedad, le engancha el submit
-  const propForm = document.getElementById('propiedad-form');
-  if (propForm) {
-    propForm.addEventListener('submit', geocodeAndSubmit);
-  }
 });
