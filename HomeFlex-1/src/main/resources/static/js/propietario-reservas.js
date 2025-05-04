@@ -1,6 +1,8 @@
 // propietario-reservas.js
 
 // Obtiene el valor de una cookie
+
+console.log("hola");
 function getCookie(name) {
   const matches = document.cookie.match(
     new RegExp("(?:^|; )" +
@@ -20,10 +22,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Mapea cada estado a los botones permitidos
   const botonesPorEstado = {
-    PENDIENTE_PAGO:   ['aprobar','rechazar'],
+    SOLICITADA:       ['aprobar','rechazar'], // ← AÑADIR ESTA LÍNEA
+    PENDIENTE_PAGO:   ['confirmar','cancelar'],
     PAGO_VERIFICADO:  ['confirmar','cancelar'],
     CONFIRMADA:       ['cancelar'],
   };
+
 
   function crearTarjeta(r) {
     const div = document.createElement('div');
@@ -81,7 +85,10 @@ document.addEventListener('DOMContentLoaded', () => {
     })
     .then(data => {
       cont.innerHTML = '';
-      data.content.forEach(r => cont.append(crearTarjeta(r)));
+      data.content.forEach(r => {
+  console.log("Estado de reserva:", r.estado);
+  cont.append(crearTarjeta(r));
+});
 
       // paginación
       let html = '';

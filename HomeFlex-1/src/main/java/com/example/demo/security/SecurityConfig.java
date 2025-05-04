@@ -1,5 +1,7 @@
 package com.example.demo.security;
 
+import java.util.Collections;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -17,51 +19,37 @@ import org.springframework.security.crypto.argon2.Argon2PasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
-import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
 
 import com.example.demo.jwt.JwtAuthenticationEntryPoint;
 import com.example.demo.jwt.JwtAuthenticationFilter;
-
-import java.util.Collections;
 
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
 public class SecurityConfig {
 
-    @Autowired
-    private CustomAuthenticationFailureHandler authenticationFailureHandler;
+    private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
+    private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final AuditLogFilter auditLogFilter;
+    private final CustomAuthenticationSuccessHandler authenticationSuccessHandler;
+    private final CustomAuthenticationFailureHandler authenticationFailureHandler;
+    private final UserDetailsService userDetailsService;
 
     @Autowired
-    private CustomAuthenticationSuccessHandler authenticationSuccessHandler;
-
-    @Autowired
-    private UserDetailsService userDetailsService;
-
-    @Autowired
-    private JwtAuthenticationFilter jwtAuthenticationFilter;
-
-    @Autowired
-    private JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
-    
-    @Autowired
-    private AuditLogFilter auditLogFilter;
-
-    /**
-     * Ignora rutas estáticas para que no pasen por los filtros de seguridad.
-     */
-    @Bean
-    public WebSecurityCustomizer webSecurityCustomizer() {
-        return (web) -> web.ignoring()
-            .requestMatchers(
-                new AntPathRequestMatcher("/css/**"),
-                new AntPathRequestMatcher("/js/**"),
-                new AntPathRequestMatcher("/images/**"),
-                new AntPathRequestMatcher("/webjars/**"),
-                new AntPathRequestMatcher("/favicon.ico"),
-                new AntPathRequestMatcher("/media/**")
-            );
+    public SecurityConfig(
+            JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint,
+            JwtAuthenticationFilter jwtAuthenticationFilter,
+            AuditLogFilter auditLogFilter,
+            CustomAuthenticationSuccessHandler authenticationSuccessHandler,
+            CustomAuthenticationFailureHandler authenticationFailureHandler,
+            UserDetailsService userDetailsService
+    ) {
+        this.jwtAuthenticationEntryPoint = jwtAuthenticationEntryPoint;
+        this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+        this.auditLogFilter = auditLogFilter;
+        this.authenticationSuccessHandler = authenticationSuccessHandler;
+        this.authenticationFailureHandler = authenticationFailureHandler;
+        this.userDetailsService = userDetailsService;
     }
 
     @Bean
@@ -70,16 +58,19 @@ public class SecurityConfig {
         return new Argon2PasswordEncoder(16, 32, 1, 65536, 3);
     }
 
+    /**
+     * Authentication provider using UserDetailsService and Argon2
+     */
     @Bean
     public DaoAuthenticationProvider authenticationProvider() {
-        DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
-        authProvider.setUserDetailsService(userDetailsService);
-        authProvider.setPasswordEncoder(passwordEncoder());
-        return authProvider;
+        DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
+        provider.setUserDetailsService(userDetailsService);
+        provider.setPasswordEncoder(passwordEncoder());
+        return provider;
     }
 
     /**
-     * Necesario para inyectar en JwtAuthenticationFilter (si lo usas manualmente).
+     * AuthenticationManager for JWT filter
      */
     @Bean
     public AuthenticationManager authenticationManager() {
@@ -87,70 +78,64 @@ public class SecurityConfig {
     }
 
     /**
-     * Cadena de seguridad para la API REST (/api/**).
-     * Stateless, sin form-login, devuelve 401 vía JwtAuthenticationEntryPoint.
+     * API (JWT stateless) security chain
      */
-    @Configuration
+    @Bean
     @Order(1)
-    public class ApiSecurityConfig {
-        @Bean
-        public SecurityFilterChain apiSecurityFilterChain(HttpSecurity http) throws Exception {
-            http
-                .securityMatcher("/api/**")
-                .csrf(AbstractHttpConfigurer::disable)
-                .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(auth -> auth
-                    .requestMatchers("/loginPEE").permitAll()
-                    .anyRequest().authenticated()
-                )
-                .exceptionHandling(ex -> ex.authenticationEntryPoint(jwtAuthenticationEntryPoint))
-                .authenticationProvider(authenticationProvider())
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
-                .formLogin(AbstractHttpConfigurer::disable)
-                .httpBasic(AbstractHttpConfigurer::disable);
-
-            return http.build();
-        }
+    public SecurityFilterChain apiSecurityFilterChain(HttpSecurity http) throws Exception {
+        http
+            .securityMatcher("/api/**")
+            .csrf(AbstractHttpConfigurer::disable)
+            .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .authorizeHttpRequests(auth -> auth
+                .requestMatchers("/api/auth/**").permitAll()
+                .anyRequest().authenticated()
+            )
+            .exceptionHandling(ex -> ex.authenticationEntryPoint(jwtAuthenticationEntryPoint))
+            .authenticationManager(authenticationManager())
+            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+            .formLogin(AbstractHttpConfigurer::disable)
+            .httpBasic(AbstractHttpConfigurer::disable);
+        return http.build();
     }
 
     /**
-     * Cadena de seguridad para el frontend Thymeleaf (form-login clásico).
+     * Web (Thymeleaf + session + JWT) security chain
      */
-    @Configuration
+    @Bean
     @Order(2)
-    public class WebSecurityConfig {
-    	   @Bean
-    	    public SecurityFilterChain webSecurityFilterChain(HttpSecurity http) throws Exception {
-    	        http
-    	            .csrf(AbstractHttpConfigurer::disable)
-    	            .authorizeHttpRequests(auth -> auth
-    	                .requestMatchers(
-    	                    "/", "/index", "/login", "/login?error", "/login?logout",
-    	                    "/registro", "/activar", "/cuenta-eliminada"
-    	                ).permitAll()
-    	                .anyRequest().authenticated()
-    	            )
-    	            .formLogin(form -> form
-    	                .loginPage("/login")
-    	                .loginProcessingUrl("/login")
-    	                .failureHandler(authenticationFailureHandler)
-    	                .successHandler(authenticationSuccessHandler)
-    	                .permitAll()
-    	            )
-    	            .logout(logout -> logout
-    	                .logoutUrl("/logout")
-    	                .logoutSuccessUrl("/login?logout=true")
-    	                .invalidateHttpSession(true)
-    	                .deleteCookies("JSESSIONID", "jwt_token")
-    	                .permitAll()
-    	            )
-    	            .sessionManagement(sm -> sm
-    	                    .sessionFixation(sessionFixation -> sessionFixation.none())
-    	                )
-    	            .authenticationProvider(authenticationProvider())
-    	            // ← Aquí añadimos el AuditLogFilter
-    	            .addFilterBefore(auditLogFilter, UsernamePasswordAuthenticationFilter.class);
-    	        return http.build();
-    	    }
+    public SecurityFilterChain webSecurityFilterChain(HttpSecurity http) throws Exception {
+        http
+            .csrf(AbstractHttpConfigurer::disable)
+            .authorizeHttpRequests(auth -> auth
+                .requestMatchers(
+                    "/", "/index", "/login", "/login?error",
+                    "/login?logout", "/registro", "/activar", "/cuenta-eliminada",
+                    "/css/**", "/js/**", "/images/**", "/webjars/**", "/favicon.ico", "/media/**"
+                ).permitAll()
+                .anyRequest().authenticated()
+            )
+            // JWT filter first: populates SecurityContext from jwt_token cookie
+            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+            .formLogin(form -> form
+                .loginPage("/login")
+                .loginProcessingUrl("/login")
+                .failureHandler(authenticationFailureHandler)
+                .successHandler(authenticationSuccessHandler)
+                .permitAll()
+            )
+            .logout(logout -> logout
+                .logoutUrl("/logout")
+                .logoutSuccessUrl("/login?logout=true")
+                .invalidateHttpSession(true)
+                .deleteCookies("JSESSIONID", "jwt_token")
+                .permitAll()
+            )
+            .sessionManagement(sm -> sm.sessionFixation(sf -> sf.none()))
+            // register DaoAuthenticationProvider
+            .authenticationProvider(authenticationProvider())
+            // Audit log filter after authentication
+            .addFilterBefore(auditLogFilter, UsernamePasswordAuthenticationFilter.class);
+        return http.build();
     }
 }

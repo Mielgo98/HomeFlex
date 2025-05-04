@@ -157,6 +157,13 @@ public class PropiedadService {
             Integer fotoPrincipalIndex)             // índice de la principal
             throws IOException {
 
+    	// Verifica si el usuario ya tiene ese rol
+    	RolVO rolPropietario = rolRepository.findByNombre("ROLE_PROPIETARIO")
+    	 .orElseThrow(() -> new RuntimeException("Rol no encontrado en BD"));
+        if (!propietario.getRoles().contains(rolPropietario)) {
+            propietario.getRoles().add(rolPropietario);
+            usuarioRepository.save(propietario); 
+        }
         /* -------- 1. datos básicos -------- */
         propiedad.setPropietario(propietario);
         propiedad.setFechaCreacion(LocalDateTime.now());
@@ -199,13 +206,6 @@ public class PropiedadService {
         /* -------- 3. ascender a PROPIETARIO si aún no lo es -------- */
         boolean yaEsPropietario = propietario.getRoles().stream()
              .anyMatch(r -> r.getNombre().equals("PROPIETARIO"));
-
-        if (!yaEsPropietario) {
-            RolVO rolPropietario = rolRepository.findByNombre("PROPIETARIO")
-                                                .orElseThrow();
-            propietario.getRoles().add(rolPropietario);
-            usuarioRepository.save(propietario);
-        }
 
         /* -------- 4. publicar el evento + devolver DTO -------- */
         applicationEventPublisher.publishEvent(

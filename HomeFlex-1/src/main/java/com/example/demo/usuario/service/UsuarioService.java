@@ -32,6 +32,7 @@ import com.example.demo.valoracion.model.ValoracionVO;
 import com.example.demo.valoracion.repository.ValoracionRepository;
 
 import jakarta.mail.MessagingException;
+import jakarta.persistence.EntityManager;
 
 @Service
 public class UsuarioService {
@@ -59,6 +60,9 @@ public class UsuarioService {
     
     @Autowired
     private ReservaRepository reservaRepository;
+    
+    @Autowired
+    private EntityManager entityManager;
     
     private UsuarioVO convertToUsuarioVO(RegistroDTO dto) {
         UsuarioVO usuario = new UsuarioVO();
@@ -167,25 +171,60 @@ public class UsuarioService {
     
     @Transactional
     public boolean darDeBajaUsuario(String password) {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        UsuarioVO usuario = usuarioRepository.findByUsername(auth.getName())
-            .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
-        if (!passwordEncoder.matches(password, usuario.getPassword()))
-            throw new RuntimeException("Contraseña incorrecta");
-        // eliminación de datos relacionados...
-        propiedadRepository.findByPropietario(usuario).forEach(prop -> {
-            fotoRepository.deleteAll(fotoRepository.findByPropiedad(prop));
-            valoracionRepository.deleteAll(valoracionRepository.findByPropiedad(prop));
-            reservaRepository.deleteAll(reservaRepository.findByPropiedad(prop));
-            propiedadRepository.delete(prop);
-        });
-        reservaRepository.deleteAll(reservaRepository.findByUsuario(usuario));
-        valoracionRepository.deleteAll(valoracionRepository.findByUsuario(usuario));
-        usuario.getRoles().clear();
-        usuarioRepository.save(usuario);
-        usuarioRepository.delete(usuario);
-        SecurityContextHolder.clearContext();
-        return true;
+        try {
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            String username = auth.getName();
+            
+            UsuarioVO usuario = usuarioRepository.findByUsername(username)
+                    .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+            
+            if (!passwordEncoder.matches(password, usuario.getPassword())) {
+                throw new RuntimeException("Contraseña incorrecta");
+            }
+            
+            // 1. Eliminar todas las propiedades del usuario
+            List<PropiedadVO> propiedades = propiedadRepository.findByPropietario(usuario);
+            for (PropiedadVO propiedad : propiedades) {
+                List<FotoVO> fotos = fotoRepository.findByPropiedad(propiedad);
+                fotoRepository.deleteAll(fotos);
+                
+                List<ValoracionVO> valoracionesPropiedad = valoracionRepository.findByPropiedad(propiedad);
+                valoracionRepository.deleteAll(valoracionesPropiedad);
+                
+                List<ReservaVO> reservasPropiedad = reservaRepository.findByPropiedad(propiedad);
+                reservaRepository.deleteAll(reservasPropiedad);
+                
+                propiedadRepository.delete(propiedad);
+            }
+            
+            // 2. Eliminar todas las reservas del usuario
+            List<ReservaVO> reservasUsuario = reservaRepository.findByUsuario(usuario);
+            reservaRepository.deleteAll(reservasUsuario);
+            
+            // 3. Eliminar todas las valoraciones del usuario
+            List<ValoracionVO> valoracionesUsuario = valoracionRepository.findByUsuario(usuario);
+            valoracionRepository.deleteAll(valoracionesUsuario);
+            
+            // Eliminar roles usando consulta nativa
+            entityManager.createNativeQuery("DELETE FROM usuarios_roles WHERE usuario_id = :userId")
+                    .setParameter("userId", usuario.getId())
+                    .executeUpdate();
+            
+            // 4. IMPORTANTE: Limpiar explícitamente los roles
+            usuario.getRoles().clear();
+            usuarioRepository.saveAndFlush(usuario);
+            
+            // 5. Eliminar el usuario
+            usuarioRepository.delete(usuario);
+            
+            // 6. Limpiar contexto de seguridad
+            SecurityContextHolder.clearContext();
+            
+            return true;
+            
+        } catch (Exception e) {
+            throw new RuntimeException("Error al dar de baja al usuario: " + e.getMessage());
+        }
     }
     
     public Map<String, Long> contarUsuariosPorRol() {

@@ -26,6 +26,8 @@ import com.example.demo.propiedad.model.PropiedadVO;
 import com.example.demo.propiedad.service.PropiedadService;
 import com.example.demo.reserva.model.ReservaDTO;
 import com.example.demo.reserva.service.ReservaService;
+import com.example.demo.rol.model.RolVO;
+import com.example.demo.rol.repository.RolRepository;
 import com.example.demo.usuario.model.UsuarioVO;
 import com.example.demo.usuario.repository.UsuarioRepository;
 import com.example.demo.usuario.service.UsuarioService;
@@ -49,6 +51,9 @@ public class PropiedadRestController {
     
     @Autowired
     private ReservaService reservaService;
+    
+    @Autowired
+    private RolRepository rolRepository;
     
     /** fragmento modal (solo se usa si se carga de forma asíncrona) */
     @GetMapping("/nueva")
@@ -97,7 +102,10 @@ public class PropiedadRestController {
                             .orElseThrow();
 
         if (!usuario.tieneRol("PROPIETARIO")) {
-            usuario.anadirRol("PROPIETARIO");       
+            RolVO rolPropietario = rolRepository.findByNombre("PROPIETARIO")
+                .orElseThrow(() -> new IllegalStateException("El rol PROPIETARIO no existe"));
+
+            usuario.addRol(rolPropietario);       
             usuarioRepository.save(usuario);
         }
 

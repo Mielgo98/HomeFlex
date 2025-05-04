@@ -2,12 +2,14 @@
  * JS para la página de listado de propiedades de HomeFlex
  * - Filtros y animaciones
  * - Paginación totalmente asíncrona (fetch + DOMParser + delegación)
+ * - Manejo de favoritos dinámico
  */
 
 document.addEventListener('DOMContentLoaded', () => {
   initFilters();
   animatePropertyCards();
   initPagination();
+  initFavoritos();
 });
 
 /**
@@ -57,21 +59,18 @@ function initFilters() {
  */
 function animatePropertyCards() {
   // Selecciona las tarjetas dentro del grid
-  const cards = document.querySelectorAll('#gridContainer .card');
+  const cards = document.querySelectorAll('#gridContainer .property-card');
   if (cards.length === 0) return;
 
   cards.forEach((card, index) => {
     card.style.opacity = '0';
-    card.style.animationDelay = `${index * 0.1}s`;
-
-    const observer = new IntersectionObserver(entries => {
-      if (entries[0].isIntersecting) {
-        card.style.opacity = '1';
-        observer.unobserve(card);
-      }
-    }, { threshold: 0.1 });
-
-    observer.observe(card);
+    card.style.transform = 'translateY(20px)';
+    card.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+    
+    setTimeout(() => {
+      card.style.opacity = '1';
+      card.style.transform = 'translateY(0)';
+    }, index * 100);
   });
 }
 
@@ -112,11 +111,10 @@ function initPagination() {
     gridContainer.innerHTML       = doc.getElementById('gridContainer').innerHTML;
     paginationContainer.innerHTML = doc.getElementById('paginationContainer').innerHTML;
 
-    // Actualizar botones habilitados/deshabilitados
-    const { currentPage, totalPages } = parsePagination();
-    // (La delegación en container seguirá capturando clicks)
     // Reaplicar animaciones a las nuevas tarjetas
     animatePropertyCards();
+    // Reinicializar los botones de favoritos
+    initFavoritos();
   }
 
   // Delegación de click
@@ -131,4 +129,74 @@ function initPagination() {
       loadPage(currentPage + 1, size);
     }
   });
+}
+
+/**
+ * Inicializa el manejo de favoritos
+ */
+function initFavoritos() {
+  // Delegar eventos en el contenedor para manejar cards nuevas
+  const gridContainer = document.getElementById('gridContainer');
+  
+  gridContainer.addEventListener('click', async (e) => {
+    const target = e.target.closest('.btn-favorito');
+    if (!target) return;
+
+    e.preventDefault();
+    const propiedadId = target.getAttribute('data-propiedad-id');
+    const icon = target.querySelector('i');
+    const isFavorite = icon.classList.contains('bi-heart-fill');
+
+    try {
+      const response = await fetch(`/api/usuario/${isFavorite ? 'eliminar' : 'agregar'}-favorito/${propiedadId}`, {
+        method: isFavorite ? 'DELETE' : 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+
+      if (!response.ok) throw new Error('Error al actualizar favorito');
+
+      const data = await response.json();
+      if (data.success) {
+        icon.classList.toggle('bi-heart');
+        icon.classList.toggle('bi-heart-fill');
+        target.classList.toggle('btn-outline-danger');
+        target.classList.toggle('btn-danger');
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      alert('No se pudo actualizar el estado de favorito. Inténtalo de nuevo.');
+    }
+  });
+
+  // Cargar el estado inicial de favoritos
+  cargarEstadoFavoritos();
+}
+
+/**
+ * Carga el estado inicial de los favoritos
+ */
+async function cargarEstadoFavoritos() {
+  try {
+    const response = await fetch('/api/usuario/propiedades-favoritas');
+    if (!response.ok) throw new Error('Error al cargar favoritos');
+    
+    const favoritos = await response.json();
+    const favoritosIds = favoritos.map(p => p.id);
+    
+    document.querySelectorAll('.btn-favorito').forEach(btn => {
+      const propiedadId = parseInt(btn.getAttribute('data-propiedad-id'));
+      const icon = btn.querySelector('i');
+      
+      if (favoritosIds.includes(propiedadId)) {
+        icon.classList.remove('bi-heart');
+        icon.classList.add('bi-heart-fill');
+        btn.classList.remove('btn-outline-danger');
+        btn.classList.add('btn-danger');
+      }
+    });
+  } catch (error) {
+    console.error('Error al cargar estado de favoritos:', error);
+  }
 }

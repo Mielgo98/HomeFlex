@@ -126,9 +126,16 @@ public class PagoService {
     
     public List<PagoDTO> obtenerPorReserva(Long reservaId) {
         return pagoRepository.findAllByReservaId(reservaId).stream()
-                             .map(PagoDTO::from)   
-                             .collect(Collectors.toList());
+                .map(pago -> {
+                    PagoDTO dto = new PagoDTO();
+                    dto.setMonto(pago.getMonto());
+                    dto.setEstado(pago.getEstado() != null ? pago.getEstado().name() : null);
+                    dto.setFechaCreacion(pago.getFechaCreacion());
+                    return dto;
+                })
+                .collect(Collectors.toList());
     }
+
     
     /**
      * Procesa un reembolso a través de Stripe

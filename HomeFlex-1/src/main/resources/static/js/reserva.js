@@ -550,3 +550,13 @@ document.addEventListener('DOMContentLoaded', () => {
     return true;
   }
 });
+
+const modalPagos = document.getElementById('modalPagos');
+if (modalPagos) {
+  modalPagos.addEventListener('shown.bs.modal', () => {
+    console.log('🟢 Modal abierto correctamente');
+  });
+  modalPagos.addEventListener('hidden.bs.modal', () => {
+    console.log('🔴 Modal cerrado');
+  });
+}

@@ -1,0 +1,32 @@
+<div class="container mt-4">
+    <h2 class="mb-4">Listado de Pagos</h2>
+    <table class="table table-striped table-hover align-middle">
+        <thead class="table-dark">
+            <tr>
+                <th scope="col">ID</th>
+                <th scope="col">Usuario</th>
+                <th scope="col">Monto</th>
+                <th scope="col">Moneda</th>
+                <th scope="col">Estado</th>
+                <th scope="col">Fecha creación</th>
+                <th scope="col">Última actualización</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr th:each="pago : ${pagos}">
+                <td th:text="${pago.id}">1</td>
+                <td th:text="${pago.usuario.nombre}">Nombre Usuario</td> <!-- Ajustar según tu modelo -->
+                <td th:text="${pago.monto}">100.00</td>
+                <td th:text="${pago.moneda}">EUR</td>
+                <td>
+                    <span class="badge bg-success" th:if="${pago.estado == 'COMPLETADO'}" th:text="${pago.estado}">COMPLETADO</span>
+                    <span class="badge bg-warning text-dark" th:if="${pago.estado == 'PENDIENTE'}" th:text="${pago.estado}">PENDIENTE</span>
+                    <span class="badge bg-danger" th:if="${pago.estado == 'FALLIDO'}" th:text="${pago.estado}">FALLIDO</span>
+                    <span class="badge bg-secondary" th:if="${pago.estado != 'COMPLETADO' and pago.estado != 'PENDIENTE' and pago.estado != 'FALLIDO'}" th:text="${pago.estado}">OTRO</span>
+                </td>
+                <td th:text="${#temporals.format(pago.fechaCreacion, 'dd/MM/yyyy HH:mm')}">01/01/2024</td>
+                <td th:text="${pago.fechaActualizacion != null ? #temporals.format(pago.fechaActualizacion, 'dd/MM/yyyy HH:mm') : '—'}">—</td>
+            </tr>
+        </tbody>
+    </table>
+</div>

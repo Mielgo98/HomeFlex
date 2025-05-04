@@ -251,6 +251,60 @@ function setupDirectGoogleMapsLink() {
     </a>
   `;
   
+  // calendario
+  document.addEventListener('DOMContentLoaded', () => {
+    // Al abrir el modal, inicializamos el calendario
+    const modalEl = document.getElementById('calendarioModal');
+    modalEl.addEventListener('shown.bs.modal', async () => {
+      // Sólo crear una vez
+      if (modalEl.dataset.inited) return;
+      modalEl.dataset.inited = 'true';
+
+      const calendarEl = document.getElementById('calendar');
+
+      // Obtén el ID de la propiedad (por ejemplo, desde un data-attribute)
+      const propiedadId = calendarEl.closest('[data-propiedad-id]').dataset.propiedadId;
+
+      // Crea el calendario
+      const calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'dayGridMonth',
+        locale: 'es',
+        headerToolbar: {
+          left: 'prev,next today',
+          center: 'title',
+          right: ''
+        },
+        events: async (fetchInfo, successCallback, failureCallback) => {
+          try {
+            // Llamada al endpoint REST que devuelve fechas ocupadas en JSON
+            const from = fetchInfo.startStr;
+            const to   = fetchInfo.endStr;
+            const res  = await fetch(
+              `/api/reservas/fechasOcupadas?propiedadId=${propiedadId}&desde=${from}&hasta=${to}`
+            );
+            const data = await res.json();
+            // data = [{ fecha: "2025-06-01", estado: "OCUPADA" }, …]
+            
+            // Mapear a formato FullCalendar
+            const events = data.map(r => ({
+              title: r.estado === 'OCUPADA' ? 'Ocupado' : 'Disponible',
+              start: r.fecha,
+              allDay: true,
+              backgroundColor: r.estado === 'OCUPADA' ? 'red' : 'green',
+              borderColor:     r.estado === 'OCUPADA' ? 'red' : 'green'
+            }));
+            successCallback(events);
+          } catch (err) {
+            console.error(err);
+            failureCallback(err);
+          }
+        }
+      });
+
+      calendar.render();
+    });
+  });
+  
   // Añadir enlace a la sección de información del mapa
   mapInfoSection.appendChild(directLink);
 }

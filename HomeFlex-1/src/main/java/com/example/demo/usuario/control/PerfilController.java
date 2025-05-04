@@ -163,29 +163,30 @@ public class PerfilController {
 
     @PostMapping("/baja-usuario")
     public String procesarBajaUsuario(
-            @Valid @ModelAttribute("bajaUsuarioDTO") BajaUsuarioDTO bajaUsuarioDTO,
-            BindingResult bindingResult,
-            Model model,
-            HttpServletRequest request,
-            HttpServletResponse response
+        @Valid @ModelAttribute("bajaUsuarioDTO") BajaUsuarioDTO bajaUsuarioDTO,
+        BindingResult bindingResult,
+        Model model,
+        HttpServletRequest request,
+        HttpServletResponse response
     ) throws ServletException {
-        
+
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String username = (auth != null) ? auth.getName() : null;
+
         if (!bajaUsuarioDTO.isConfirmacion()) {
             bindingResult.rejectValue("confirmacion", "error.bajaUsuarioDTO", 
                 "Debes confirmar que deseas dar de baja tu cuenta");
         }
-        
+
         if (bindingResult.hasErrors()) {
-            model.addAttribute("usuarioRoles", usuarioService
-                .buscarPorUsername(SecurityContextHolder.getContext()
-                .getAuthentication().getName()).getRoles());
+            if (username != null)
+                model.addAttribute("usuarioRoles", usuarioService.buscarPorUsername(username).getRoles());
             return "usuario/confirmar-baja";
         }
-        
+
         try {
-            boolean resultado = usuarioService
-                .darDeBajaUsuario(bajaUsuarioDTO.getPassword());
-            
+            boolean resultado = usuarioService.darDeBajaUsuario(bajaUsuarioDTO.getPassword());
+
             if (resultado) {
                 HttpSession session = request.getSession(false);
                 if (session != null) session.invalidate();
@@ -202,20 +203,17 @@ public class PerfilController {
                 SecurityContextHolder.clearContext();
                 return "redirect:/cuenta-eliminada";
             } else {
-                model.addAttribute("mensajeError", 
-                    "No se pudo dar de baja la cuenta. Intenta nuevamente.");
-                model.addAttribute("usuarioRoles", usuarioService
-                    .buscarPorUsername(SecurityContextHolder.getContext()
-                    .getAuthentication().getName()).getRoles());
+                model.addAttribute("mensajeError", "No se pudo dar de baja la cuenta. Intenta nuevamente.");
+                if (username != null)
+                    model.addAttribute("usuarioRoles", usuarioService.buscarPorUsername(username).getRoles());
                 return "usuario/confirmar-baja";
             }
         } catch (Exception e) {
-            model.addAttribute("mensajeError", 
-                "Error al dar de baja la cuenta: " + e.getMessage());
-            model.addAttribute("usuarioRoles", usuarioService
-                .buscarPorUsername(SecurityContextHolder.getContext()
-                .getAuthentication().getName()).getRoles());
+            model.addAttribute("mensajeError", "Error al dar de baja la cuenta: " + e.getMessage());
+            if (username != null)
+                model.addAttribute("usuarioRoles", usuarioService.buscarPorUsername(username).getRoles());
             return "usuario/confirmar-baja";
         }
     }
+
 }

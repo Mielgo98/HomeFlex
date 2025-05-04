@@ -190,16 +190,19 @@
         </div>
 
         <!-- Disponibilidad -->
-        <div class="card shadow-sm">
-          <div class="card-header bg-light">
-            <h3 class="h5 mb-0">Disponibilidad</h3>
-          </div>
-          <div class="card-body">
-            <p class="mb-0">Para consultar la disponibilidad, inicia el proceso de reserva.</p>
-            <a th:href="@{'/reservas/nueva/' + ${propiedad.id}}"
-               class="btn btn-outline-primary btn-sm mt-2 d-block">Ver calendario</a>
-          </div>
-        </div>
+        <!-- Bloque de Disponibilidad -->
+    <div class="card shadow-sm mb-4">
+      <div class="card-header bg-light">
+        <h3 class="h5 mb-0">Disponibilidad</h3>
+      </div>
+      <div class="card-body">
+        <!-- El botón dispara el modal -->
+        <button type="button"
+                class="btn btn-outline-primary btn-sm d-block"
+                data-bs-toggle="modal"
+                data-bs-target="#calendarioModal">
+          Ver calendario
+        </button>
       </div>
     </div>
 
@@ -219,6 +222,8 @@
 
   
   </main>
+
+ <div th:insert="~{propiedad/calendario :: calendarioModal}"></div>
 
   <!-- Modal de nueva/editar valoración -->
   <div class="modal fade" id="reviewModal" tabindex="-1"
@@ -308,5 +313,8 @@
     const propiedadId = /*[[${propiedad.id}]]*/ 0;
   </script>
   <script th:src="@{/js/valoraciones.js}"></script>
+  <script th:src="@{/js/reserva-calendar.js}"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  
 </body>
 </html>

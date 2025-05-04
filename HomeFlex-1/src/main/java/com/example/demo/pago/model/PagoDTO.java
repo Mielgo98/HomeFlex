@@ -1,6 +1,8 @@
 package com.example.demo.pago.model;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
+
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -20,6 +22,8 @@ public class PagoDTO {
     private BigDecimal monto;
     private String idSesion;
     private String moneda = "EUR"; // Por defecto
+    private String estado;
+    private LocalDateTime fechaCreacion;
 
     /**
      * Construye un PagoDTO a partir de un PagoVO

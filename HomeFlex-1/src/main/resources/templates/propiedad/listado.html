@@ -2,33 +2,55 @@
 <html xmlns:th="http://www.thymeleaf.org" lang="es">
 <head>
     <!-- Fragmento común: meta, main.css, título dinámico -->
-    <th:block th:replace="fragments/head :: head('Listado de Propiedades')" />
+    <th:block th:replace="~{fragments/head :: head('Listado de Propiedades')}" />
     <!-- CSS específico de listado -->
     <link rel="stylesheet" th:href="@{/css/property-listado.css}" />
+    <!-- CSS adicional para el chatbot -->
+    <link rel="stylesheet" th:href="@{/css/chatbot.css}">
 </head>
 <body>
     <!-- Header común -->
-    <div th:replace="fragments/header :: header"></div>
+    <div th:replace="~{fragments/header :: header}"></div>
 
     <main class="container">
         <h1>Propiedades</h1>
 
         <!-- GRID de tarjetas con ID para JS -->
-        <div class="grid" id="gridContainer">
-            <div class="card" th:each="propiedad : ${propiedades.content}">
-                <img th:src="${propiedad.fotoPrincipal}" th:alt="${propiedad.titulo}" />
-                <div class="card-body">
-                    <h2 th:text="${propiedad.titulo}">Título</h2>
-                    <p th:text="${#numbers.formatDecimal(propiedad.precioDia,1,'COMMA',2,'POINT')} + ' €/día'">
-                        Precio
-                    </p>
-                    <a th:href="@{'/propiedades/' + ${propiedad.id}}" class="btn">Ver detalle</a>
+        <div class="row g-4" id="gridContainer">
+            <div class="col-md-4 col-sm-6" th:each="propiedad : ${propiedades.content}">
+                <div class="card h-100 shadow-sm property-card" th:data-id="${propiedad.id}">
+                    <img th:src="${propiedad.fotoPrincipal}" th:alt="${propiedad.titulo}" 
+                         class="card-img-top" style="height: 250px; object-fit: cover;" />
+                    <div class="card-body d-flex flex-column">
+                        <h5 class="card-title" th:text="${propiedad.titulo}">Título</h5>
+                        <p class="card-text flex-grow-1">
+                            <i class="bi bi-geo-alt-fill me-1"></i> 
+                            <span th:text="${propiedad.ciudad}">Ciudad</span>, 
+                            <span th:text="${propiedad.pais}">País</span>
+                        </p>
+                        <p class="card-text mb-3">
+                            <strong th:text="${#numbers.formatDecimal(propiedad.precioDia,1,'COMMA',2,'POINT')} + ' €/día'">
+                                Precio
+                            </strong>
+                        </p>
+                        <div class="d-flex justify-content-between align-items-center mt-auto">
+                            <a th:href="@{'/propiedades/' + ${propiedad.id}}" class="btn btn-primary">
+                                Ver detalles
+                            </a>
+                            <!-- Botón de favoritos dinámico -->
+                            <button th:if="${#authorization.expression('isAuthenticated()')}"
+                                    class="btn btn-outline-danger btn-sm btn-favorito"
+                                    th:data-propiedad-id="${propiedad.id}">
+                                <i class="bi bi-heart"></i>
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
 
         <!-- Barra de paginación atractiva -->
-        <nav class="pagination-container" id="paginationContainer">
+        <nav class="pagination-container mt-4" id="paginationContainer">
             <button id="prevBtn"
                     aria-label="Página anterior"
                     th:disabled="${paginaActual == 0}">
@@ -46,6 +68,38 @@
         </nav>
     </main>
 
+    <!-- Chatbot fijo -->
+    <div class="chatbot-fixed" id="chatbotWidget">
+        <button class="chatbot-toggle" id="chatbotToggle">
+            <i class="bi bi-chat-dots-fill"></i>
+        </button>
+        <div class="chatbot-container" id="chatbotContainer" style="display: none;">
+            <div class="chatbot-header">
+                <h5>Asistente Virtual</h5>
+                <button class="btn-close-chatbot" id="closeChatbot">&times;</button>
+            </div>
+            <div class="chat-messages" id="chatMessages">
+                <!-- Mensaje de bienvenida inicial -->
+                <div class="message bot-message">
+                    <div class="message-content">
+                        <i class="bi bi-robot message-avatar"></i>
+                        <div class="message-bubble">
+                            <p>¡Hola! ¿En qué puedo ayudarte hoy?</p>
+                        </div>
+                    </div>
+                </div>
+                <div id="conversationHistory">
+                </div>
+            </div>
+            <div class="chat-input">
+                <form id="chatForm">
+                    <input type="text" id="userInput" placeholder="Escribe tu mensaje...">
+                    <button type="submit"><i class="bi bi-send"></i></button>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <!-- Exponer pageSize al JS -->
     <script th:inline="javascript">
     /*<![CDATA[*/
@@ -54,9 +108,11 @@
     </script>
 
     <!-- Footer común -->
-    <div th:replace="fragments/footer :: footer"></div>
+    <div th:replace="~{fragments/footer :: footer}"></div>
 
-    <!-- Script de paginación asíncrona -->
+    <!-- Scripts -->
     <script defer th:src="@{/js/property-listado.js}"></script>
+    <script defer th:src="@{/js/chatbotmodal.js}"></script>
+    <script defer th:src="@{/js/favoritos.js}"></script>
 </body>
 </html>

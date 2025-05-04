@@ -8,6 +8,7 @@ import java.util.Set;
 import com.example.demo.propiedad.model.PropiedadVO;
 import com.example.demo.rol.model.RolVO;
 
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -53,15 +54,14 @@ public class UsuarioVO {
     @Column(length = 20, unique = true, nullable = false)
     private String telefono;
     
-    // Relación many-to-many con la entidad Rol - Aseguramos que se cargue EAGER
-    @ManyToMany(fetch = FetchType.EAGER)
+    @ManyToMany(fetch = FetchType.EAGER, cascade = CascadeType.REMOVE)
     @JoinTable(
-        name = "usuario_roles",
+        name = "usuario_roles",  // o "usuarios_roles" según tu BD
         joinColumns = @JoinColumn(name = "usuario_id"),
         inverseJoinColumns = @JoinColumn(name = "rol_id")
     )
-    // No es necesario excluir aquí porque la relación con RolVO ya tiene @EqualsAndHashCode.Exclude en RolVO
     private Set<RolVO> roles = new HashSet<>();
+
     
     @Column(name = "foto_perfil", length = 255)
     private String fotoPerfil;
