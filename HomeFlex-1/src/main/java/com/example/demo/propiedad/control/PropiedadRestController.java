@@ -1,34 +1,48 @@
 package com.example.demo.propiedad.control;
 
+import java.awt.print.Pageable;
+import java.io.IOException;
 import java.security.Principal;
+import java.time.LocalDate;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.security.access.prepost.PreAuthorize;
+
+import static org.springframework.format.annotation.DateTimeFormat.ISO;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.validation.BindingResult;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import com.example.demo.propiedad.model.PropiedadDTO;
 import com.example.demo.propiedad.model.PropiedadVO;
 import com.example.demo.propiedad.service.PropiedadService;
 import com.example.demo.reserva.model.ReservaDTO;
 import com.example.demo.reserva.service.ReservaService;
+import com.example.demo.usuario.model.UsuarioVO;
+import com.example.demo.usuario.repository.UsuarioRepository;
+import com.example.demo.usuario.service.UsuarioService;
 import com.example.demo.valoracion.model.ValoracionDTO;
 import com.example.demo.valoracion.model.ValoracionesEstadisticasDTO;
 import com.example.demo.valoracion.service.ValoracionService;
+
+import jakarta.validation.Valid;
 
 @Controller
 @RequestMapping("/propiedades")
 public class PropiedadRestController {
 
+    @Autowired private PropiedadService propiedadService;
+    @Autowired private UsuarioService  usuarioService;
     @Autowired
-    private PropiedadService propiedadService;
+    private UsuarioRepository usuarioRepository;
     
     @Autowired
     private ValoracionService valoracionService;
@@ -36,57 +50,67 @@ public class PropiedadRestController {
     @Autowired
     private ReservaService reservaService;
     
-    /**
-     * Muestra el listado de propiedades con paginación y filtros
-     */
-    @GetMapping
-    public String listarPropiedades(
-            @RequestParam(defaultValue = "0") int pagina,
-            @RequestParam(defaultValue = "9") int size,
-            @RequestParam(required = false) String ciudad,
-            @RequestParam(required = false) String ordenar,
-            Model model) {
-        
-        // Configurar la ordenación
-        Sort sort;
-        if ("precio_asc".equals(ordenar)) {
-            sort = Sort.by("precioDia").ascending();
-        } else if ("precio_desc".equals(ordenar)) {
-            sort = Sort.by("precioDia").descending();
-        } else if ("fecha_asc".equals(ordenar)) {
-            sort = Sort.by("fechaCreacion").ascending();
-        } else {
-            // Por defecto, ordenar por fecha de creación descendente
-            sort = Sort.by("fechaCreacion").descending();
-        }
-        
-        // Construir el PageRequest
-        PageRequest pageable = PageRequest.of(pagina, size, sort);
-        
-        // Obtener las propiedades (con o sin filtro de ciudad)
-        Page<PropiedadDTO> propiedades;
-        if (ciudad != null && !ciudad.isEmpty()) {
-            propiedades = propiedadService
-                .busquedaAvanzada(ciudad, null, null, null, null, null, null, pagina, size);
-        } else {
-            propiedades = propiedadService.obtenerPropiedadesPaginadas(pagina, size);
-        }
-        
-        // Atributos para la vista
-        model.addAttribute("propiedades", propiedades);
-        model.addAttribute("paginaActual", pagina);
-        model.addAttribute("totalPaginas", propiedades.getTotalPages());
-        model.addAttribute("pageSize", propiedades.getSize());        // ← Nuevo atributo
-        model.addAttribute("ordenar", ordenar);
-        model.addAttribute("ciudad", ciudad);
-        model.addAttribute("ciudadesPopulares", propiedadService.obtenerCiudadesPopulares());
-        
-        return "propiedad/listado";
+    /** fragmento modal (solo se usa si se carga de forma asíncrona) */
+    @GetMapping("/nueva")
+    public String formNuevaPropiedad(Model model) {
+        model.addAttribute("propiedad", new PropiedadVO());
+        return "propiedad/formulario :: formNuevaPropiedad";
     }
-    
+
     /**
-     * Muestra el detalle de una propiedad con información completa
+     * Procesa el formulario modal.  
+     *  – Crea la propiedad  
+     *  – Asigna ROLE_PROPIETARIO si el usuario solo era INQUILINO  
+     *  – Guarda las fotos en media/propiedades  
+     *  – Redirige a /index con SweetAlert
+     * @throws IOException 
      */
+    @PreAuthorize("hasRole('ROLE_INQUILINO') or hasRole('ROLE_PROPIETARIO')")
+    @PostMapping("/propiedades")
+    public String crearPropiedad(
+            @Valid                     @ModelAttribute("propiedad") PropiedadVO propiedad,
+                                       BindingResult result,
+                                       @RequestParam("ficheros") List<MultipartFile> ficheros,
+                                       @RequestParam(value="fotoPrincipalIndex", required=false)
+                                       Integer fotoPrincipalIndex,
+                                       Principal principal,
+                                       RedirectAttributes redirect,
+                                       Model model) throws IOException {
+
+        if (result.hasErrors()) {
+        	 model.addAttribute("showModal", true);
+        	 System.out.println("Vaya errores");
+        	 
+        	  System.out.println("⛔️ VALIDATION ERRORS:");
+        	    result.getFieldErrors().forEach(fe ->
+        	        System.out.printf("  • %s %s → %s%n",
+        	                fe.getField(), fe.getRejectedValue(), fe.getDefaultMessage()));
+
+        	    result.getGlobalErrors().forEach(ge ->
+        	        System.out.printf("  • %s → %s%n",
+        	                ge.getObjectName(), ge.getDefaultMessage()));
+        	 
+             return "index";
+        }
+
+        UsuarioVO usuario = usuarioRepository.findByUsername(principal.getName())
+                            .orElseThrow();
+
+        if (!usuario.tieneRol("PROPIETARIO")) {
+            usuario.anadirRol("PROPIETARIO");       
+            usuarioRepository.save(usuario);
+        }
+
+     System.out.println("Propiedad a punto de crearse");
+        PropiedadDTO dto = propiedadService.crearPropiedad(propiedad, usuario);
+        propiedadService.procesarFotos(dto.getId(), ficheros, fotoPrincipalIndex);
+        System.out.println("Propiedad a creada");
+        /* ---------- SweetAlert en index ---------- */
+        redirect.addFlashAttribute("mensaje", "¡Propiedad publicada con éxito!");
+        return "redirect:/index";
+    }
+
+
     @GetMapping("/{id}")
     public String verPropiedad(@PathVariable Long id, Model model, Principal principal) {
         try {
@@ -134,50 +158,66 @@ public class PropiedadRestController {
             return "error";
         }
     }
-    
+
+   
     /**
-     * Muestra el formulario de búsqueda avanzada de propiedades
+     * Búsqueda avanzada con/-sin disponibilidad y paginación.
+     *
+     * @param ciudad        filtro por ciudad (contiene, case-insensitive)
+     * @param pais          filtro por país  (contiene, case-insensitive)
+     * @param capacidad     nº mínimo de huéspedes
+     * @param dormitorios   nº mínimo de dormitorios
+     * @param banos         nº mínimo de baños
+     * @param precioMin     precio mínimo por día  (EUR)
+     * @param precioMax     precio máximo por día  (EUR)
+     * @param fechaInicio   fecha de entrada (opcional)
+     * @param fechaFin      fecha de salida  (opcional)
+     * @param pagina        nº de página (0-based)
+     * @param size          tamaño de página
      */
-    @GetMapping("/buscar")
-    public String formularioBusqueda(Model model) {
-        // Obtener ciudades populares para sugerencias de autocompletado
-        List<String> ciudadesPopulares = propiedadService.obtenerCiudadesPopulares();
-        model.addAttribute("ciudadesPopulares", ciudadesPopulares);
-        
-        return "propiedad/busqueda";
-    }
-    
-    /**
-     * Procesa la búsqueda avanzada de propiedades
-     */
-    @GetMapping("/resultados")
-    public String resultadosBusqueda(
-            @RequestParam(required = false) String ciudad,
-            @RequestParam(required = false) String pais,
-            @RequestParam(required = false) Integer capacidad,
-            @RequestParam(required = false) Integer dormitorios,
-            @RequestParam(required = false) Integer banos,
-            @RequestParam(required = false) Double precioMin,
-            @RequestParam(required = false) Double precioMax,
+    @GetMapping
+    public String listarPropiedades(
             @RequestParam(defaultValue = "0") int pagina,
             @RequestParam(defaultValue = "9") int size,
+            @RequestParam(required = false) String ciudad,
+            @RequestParam(required = false)
+            @DateTimeFormat(iso = ISO.DATE) LocalDate fechaInicio,
+            @RequestParam(required = false)
+            @DateTimeFormat(iso = ISO.DATE) LocalDate fechaFin,
+            @RequestParam(required = false) String ordenar,
             Model model) {
-        
-        // Realizar búsqueda con los criterios proporcionados
+
+        Sort sort;
+        switch (ordenar == null ? "" : ordenar) {
+            case "precio_asc"  -> sort = Sort.by("precioDia").ascending();
+            case "precio_desc" -> sort = Sort.by("precioDia").descending();
+            case "fecha_asc"   -> sort = Sort.by("fechaCreacion").ascending();
+            default            -> sort = Sort.by("fechaCreacion").descending();
+        }
+        PageRequest pageable = PageRequest.of(pagina, size, sort);
+
         Page<PropiedadDTO> propiedades = propiedadService.busquedaAvanzada(
-                ciudad, pais, capacidad, dormitorios, banos, precioMin, precioMax, pagina, size);
-        
+                ciudad,          // ciudad
+                null,            // pais  (aún no se filtra, se pasa null)
+                null, null, null,// capacidad, dormitorios, banos
+                null, null,      // precioMin, precioMax
+                fechaInicio,     // fechaInicio
+                fechaFin,        // fechaFin
+                pagina,          // página
+                size);           // tamaño
+
+        /* 3. Datos para la vista */
         model.addAttribute("propiedades", propiedades);
         model.addAttribute("paginaActual", pagina);
         model.addAttribute("totalPaginas", propiedades.getTotalPages());
+        model.addAttribute("pageSize", propiedades.getSize());
+        model.addAttribute("ordenar", ordenar);
         model.addAttribute("ciudad", ciudad);
-        model.addAttribute("pais", pais);
-        model.addAttribute("capacidad", capacidad);
-        model.addAttribute("dormitorios", dormitorios);
-        model.addAttribute("banos", banos);
-        model.addAttribute("precioMin", precioMin);
-        model.addAttribute("precioMax", precioMax);
-        
-        return "propiedad/resultados";
+        model.addAttribute("fechaInicio", fechaInicio);
+        model.addAttribute("fechaFin", fechaFin);
+        model.addAttribute("ciudadesPopulares",
+                           propiedadService.obtenerCiudadesPopulares());
+
+        return "propiedad/listado";
     }
 }

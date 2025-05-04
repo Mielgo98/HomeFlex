@@ -1,94 +1,231 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
-  <head th:replace="fragments/head :: head('HomeFlex - Inicio')"></head>
-  <body>
-    <header th:replace="fragments/header :: header"></header>
+<head th:replace="fragments/head :: head('HomeFlex - Inicio')"></head>
 
-    <main class="container my-4">
-      <div class="p-5 mb-4 bg-light rounded-3">
+<body>
+<header th:replace="fragments/header :: header"></header>
+
+<main class="container my-4">
+
+    <!-- ========================= JUMBOTRON ========================= -->
+    <section class="p-5 mb-4 bg-light rounded-3">
         <div class="container-fluid py-5">
-          <h1 class="display-5 fw-bold">Bienvenido a HomeFlex</h1>
-          <p class="col-md-8 fs-4">Tu plataforma de alquiler temporal. Encuentra el alojamiento perfecto para tus necesidades o publica tus propiedades.</p>
-          <a th:href="@{/propiedades}" class="btn btn-primary btn-lg">Ver propiedades</a>
+            <h1 class="display-5 fw-bold">Bienvenido a HomeFlex</h1>
+            <p class="col-md-8 fs-4">
+                Tu plataforma de alquiler temporal. Encuentra el alojamiento perfecto
+                para tus necesidades o publica tus propiedades.
+            </p>
+            <a th:href="@{/propiedades}" class="btn btn-primary btn-lg">Ver propiedades</a>
         </div>
-      </div>
+    </section>
 
-      <section class="search-section py-5 bg-light rounded-3 mb-5">
+    <!-- ========================= BUSCADOR ========================== -->
+    <section class="search-section py-5 bg-light rounded-3 mb-5">
         <div class="container">
-          <h2 class="mb-4 text-center">Encuentra tu alojamiento ideal</h2>
-          <form id="searchForm" th:action="@{/propiedades}" method="get" class="row g-3 justify-content-center">
-            <div class="col-md-4">
-              <input type="text" name="ciudad" class="form-control" placeholder="¿Dónde quieres ir?">
-              <!-- Lista de sugerencias de ciudades populares si hay datos -->
-              <div th:if="${not #lists.isEmpty(ciudadesPopulares)}" class="mt-2 small">
-                <span>Ciudades populares: </span>
-                <span th:each="ciudad, iterStat : ${ciudadesPopulares}">
-                  <a href="#" th:text="${ciudad}" onclick="document.querySelector('input[name=\'ciudad\']').value=this.textContent;return false;"></a>
-                  <span th:if="${!iterStat.last}">, </span>
-                </span>
-              </div>
-            </div>
-            <div class="col-md-2">
-              <input type="date" name="fechaInicio" class="form-control" placeholder="Llegada">
-            </div>
-            <div class="col-md-2">
-              <input type="date" name="fechaFin" class="form-control" placeholder="Salida">
-            </div>
-            <div class="col-md-2">
-              <button type="submit" class="btn btn-primary w-100">Buscar</button>
-            </div>
-          </form>
-        </div>
-      </section>
+            <h2 class="mb-4 text-center">Encuentra tu alojamiento ideal</h2>
+            <form id="searchForm" th:action="@{/propiedades}" method="get"
+                  class="row g-3 justify-content-center">
 
-      <section class="featured-properties mb-5">
-        <h2 class="mb-4">Propiedades destacadas</h2>
-        
-        <!-- Mensaje si no hay propiedades -->
-        <div th:if="${#lists.isEmpty(propiedadesDestacadas)}" class="alert alert-info text-center">
-          <p>No hay propiedades disponibles en este momento.</p>
-          <a th:href="@{/propiedades/nueva}" class="btn btn-primary btn-sm mt-2" th:if="${#authorization.expression('hasRole(''ROLE_PROPIETARIO'')')}">
-            Publicar una propiedad
-          </a>
-        </div>
-        
-        <!-- Grid de propiedades destacadas -->
-        <div th:if="${not #lists.isEmpty(propiedadesDestacadas)}" class="row">
-          <div th:each="propiedad : ${propiedadesDestacadas}" class="col-md-4 mb-4">
-            <div class="card h-100">
-              <!-- Imagen de la propiedad o placeholder -->
-              <img th:if="${propiedad.fotoPrincipal != null}" th:src="${propiedad.fotoPrincipal}" class="card-img-top" alt="Imagen de propiedad">
-              <img th:unless="${propiedad.fotoPrincipal != null}" src="/images/property-placeholder.jpg" class="card-img-top" alt="Imagen de propiedad">
-              
-              <div class="card-body">
-                <h5 class="card-title" th:text="${propiedad.titulo}">Título de propiedad</h5>
-                <p class="card-text" th:text="${#strings.abbreviate(propiedad.descripcion, 100)}">Descripción</p>
-                <p class="card-text">
-                  <i class="bi bi-geo-alt-fill"></i> <span th:text="${propiedad.ciudad + ', ' + propiedad.pais}">Ubicación</span>
-                </p>
-                <div class="d-flex justify-content-between align-items-center">
-                  <span class="price">
-                    <strong th:text="${#numbers.formatDecimal(propiedad.precioDia, 0, 'COMMA', 2, 'POINT')} + ' €/noche'">Precio</strong>
-                  </span>
-                  <a th:href="@{'/propiedades/' + ${propiedad.id}}" class="btn btn-sm btn-outline-primary">Ver detalles</a>
+                <div class="col-md-4">
+                    <input class="form-control" type="text" name="ciudad"
+                           placeholder="¿Dónde quieres ir?">
+                    <div th:if="${not #lists.isEmpty(ciudadesPopulares)}"
+                         class="mt-2 small">
+                        <span>Ciudades populares: </span>
+                        <span th:each="c, it : ${ciudadesPopulares}">
+                            <a href="#" th:text="${c}"
+                               onclick="document.querySelector('input[name=\'ciudad\']').value=this.textContent;return false;"></a>
+                            <span th:if="${!it.last}">, </span>
+                        </span>
+                    </div>
                 </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-      
-      <!-- Sección de promoción para propietarios -->
-      <section class="owner-promo py-5 bg-light rounded-3 text-center mb-5">
-        <h2 class="mb-3">¿Tienes una propiedad para alquilar?</h2>
-        <p class="lead mb-4">Únete a HomeFlex y comienza a obtener ingresos con tu propiedad. Proceso sencillo, pagos seguros y soporte completo.</p>
-        <a th:href="@{/propiedades/nueva}" class="btn btn-outline-primary" >Publicar propiedad</a>
-      </section>
-    </main>
 
-    <footer th:replace="fragments/footer :: footer"></footer>
-    
-    <!-- Referencia al script de fechas pero sin código en el HTML -->
-    <script th:src="@{/js/search.js}"></script>
-  </body>
+                <div class="col-md-2">
+                    <input class="form-control" type="date" name="fechaInicio">
+                </div>
+
+                <div class="col-md-2">
+                    <input class="form-control" type="date" name="fechaFin">
+                </div>
+
+                <div class="col-md-2">
+                    <button class="btn btn-primary w-100" type="submit">Buscar</button>
+                </div>
+            </form>
+        </div>
+    </section>
+
+    <!-- ================== PROPIEDADES DESTACADAS =================== -->
+    <section class="featured-properties mb-5">
+        <h2 class="mb-4">Propiedades destacadas</h2>
+
+        <!-- mensaje si no hay propiedades -->
+        <div th:if="${#lists.isEmpty(propiedadesDestacadas)}"
+             class="alert alert-info text-center">
+            <p>No hay propiedades disponibles en este momento.</p>
+            <a class="btn btn-primary btn-sm mt-2"
+               th:if="${#authorization.expression('hasRole(''ROLE_INQUILINO'')')}"
+               data-bs-toggle="modal" data-bs-target="#crearPropiedadModal">
+                Publicar una propiedad
+            </a>
+        </div>
+
+        <!-- listado -->
+        <div th:if="${not #lists.isEmpty(propiedadesDestacadas)}" class="row">
+            <div th:each="p : ${propiedadesDestacadas}" class="col-md-4 mb-4">
+                <div class="card h-100">
+                    <img class="card-img-top"
+                         th:src="${p.fotoPrincipal != null ? p.fotoPrincipal : '/images/property-placeholder.jpg'}"
+                         alt="Imagen de la propiedad">
+
+                    <div class="card-body">
+                        <h5 class="card-title" th:text="${p.titulo}">Título</h5>
+                        <p class="card-text"
+                           th:text="${#strings.abbreviate(p.descripcion,100)}"></p>
+
+                        <p class="card-text">
+                            <i class="bi bi-geo-alt-fill"></i>
+                            <span th:text="${p.ciudad + ', ' + p.pais}">Ubicación</span>
+                        </p>
+
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="price fw-semibold"
+                                  th:text="${#numbers.formatDecimal(p.precioDia,0,'COMMA',2,'POINT')} + ' €/noche'">
+                                00 €/noche
+                            </span>
+                            <a class="btn btn-sm btn-outline-primary"
+                               th:href="@{'/propiedades/' + ${p.id}}">Ver detalles</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- =================== PROMOCIÓN PROPIETARIOS ================== -->
+    <section class="owner-promo py-5 bg-light rounded-3 text-center mb-5">
+        <h2 class="mb-3">¿Tienes una propiedad para alquilar?</h2>
+        <p class="lead mb-4">
+            Únete a HomeFlex y comienza a obtener ingresos con tu propiedad.
+            Proceso sencillo, pagos seguros y soporte completo.
+        </p>
+        <a class="btn btn-outline-primary"
+           data-bs-toggle="modal" data-bs-target="#crearPropiedadModal">
+            Publicar propiedad
+        </a>
+    </section>
+
+</main>
+
+<footer th:replace="fragments/footer :: footer"></footer>
+
+<!-- ================================================================ -->
+<!-- MODAL con el formulario de alta                                   -->
+<!-- ================================================================ -->
+<div class="modal fade" id="crearPropiedadModal" tabindex="-1"
+     aria-labelledby="crearPropiedadLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="crearPropiedadLabel">Publicar nueva propiedad</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"
+                        aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+			<div th:replace="~{propiedad/formulario :: formNuevaPropiedad}"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ========================= SCRIPTS =============================== -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+        crossorigin="anonymous"></script>
+
+<!-- SweetAlert2 -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<!-- Mensaje flash -->
+<script th:inline="javascript">
+/*<![CDATA[*/
+    const mensaje = /*[[${mensaje}]]*/ null;
+    if (mensaje) {
+        Swal.fire({
+            icon: 'success',
+            title: mensaje,
+            showConfirmButton: false,
+            timer: 2200
+        });
+    }
+/*]]>*/
+</script>
+    <script>
+      document.addEventListener('DOMContentLoaded', () => {
+        const form      = document.getElementById('formPropiedad');
+        const direccion = document.getElementById('direccion');
+        const latI      = document.getElementById('latitud');
+        const lonI      = document.getElementById('longitud');
+        const btn       = document.getElementById('btnSubmit');
+
+        form.addEventListener('submit', async e => {
+          e.preventDefault();
+          btn.disabled = true;
+
+          const q = direccion.value.trim();
+          if (!q) {
+            await Swal.fire({ icon: 'error', title: 'Dirección obligatoria' });
+            btn.disabled = false;
+            return;
+          }
+
+          try {
+            Swal.showLoading();
+            const res = await fetch(
+              `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(q)}`,
+              { headers: { "Accept-Language": "es" } }
+            );
+            const data = await res.json();
+            Swal.close();
+
+            if (!data.length) {
+              await Swal.fire({
+                icon: 'warning',
+                title: 'Dirección no encontrada',
+                text: 'Revisa la dirección o añade más datos'
+              });
+              btn.disabled = false;
+              return;
+            }
+
+            latI.value = data[0].lat;
+            lonI.value = data[0].lon;
+
+            await Swal.fire({
+              icon: 'success',
+              title: 'Dirección verificada',
+              text: 'Guardando propiedad…',
+              showConfirmButton: false,
+              timer: 1000
+            });
+
+            form.submit();
+          } catch (err) {
+            console.error(err);
+            await Swal.fire({
+              icon: 'error',
+              title: 'Error de validación',
+              text: 'No se pudo comprobar la dirección. Inténtalo de nuevo.'
+            });
+            btn.disabled = false;
+          }
+        });
+      });
+    </script>
+<!-- buscador -->
+<script th:src="@{/js/search.js}"></script>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lightgallery@2.7.0/lightgallery.min.js"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
 </html>

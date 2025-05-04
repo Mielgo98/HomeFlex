@@ -7,6 +7,8 @@ import java.util.Set;
 
 import com.example.demo.usuario.model.UsuarioVO;
 import com.example.demo.foto.model.FotoVO;
+
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -83,10 +85,12 @@ public class PropiedadVO {
     private LocalDateTime fechaCreacion;
     
     // Relación con las fotos - se excluye para evitar recursión en hashCode y equals
-    @OneToMany(mappedBy = "propiedad", fetch = FetchType.LAZY)
-    @ToString.Exclude
-    @EqualsAndHashCode.Exclude
-    private Set<FotoVO> fotos = new HashSet<>();
+    @OneToMany(mappedBy = "propiedad",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true,
+            fetch = FetchType.LAZY)
+ private Set<FotoVO> fotos = new HashSet<>();
+
     
     // Método para obtener la foto principal
     public String getFotoPrincipal() {

@@ -2,6 +2,7 @@ package com.example.demo.usuario.model;
 
 import java.time.LocalDateTime;
 import java.util.HashSet;
+import java.util.Optional;
 import java.util.Set;
 
 import com.example.demo.propiedad.model.PropiedadVO;
@@ -98,6 +99,30 @@ public class UsuarioVO {
             this.roles = new HashSet<>();
         }
         this.roles.add(rol);
+    }
+    
+    public boolean tieneRol(String nombreRol) {
+        return roles.stream()
+                    .anyMatch(r -> r.getNombre()
+                                    .equalsIgnoreCase(nombreRol));
+    }
+
+    public boolean anadirRol(RolVO rol) {
+        return this.roles.add(rol);         
+    }
+    
+    public boolean anadirRol(String nombreRol) {
+        Optional<RolVO> existente = roles.stream()
+                                         .filter(r -> r.getNombre()
+                                                       .equalsIgnoreCase(nombreRol))
+                                         .findFirst();
+        if (existente.isPresent()) {
+            return false;                    
+        }
+        RolVO nuevo = RolVO.builder()
+                           .nombre(nombreRol.toUpperCase())
+                           .build();
+        return roles.add(nuevo);
     }
 
     /**

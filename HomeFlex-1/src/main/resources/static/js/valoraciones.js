@@ -196,12 +196,13 @@ submitBtn.addEventListener('click', () => {
     : `/api/valoraciones/propiedad/${propiedadId}`;
 
   const body = {
-    comentario,
-    puntuacion:   groups.general.value,
-    limpieza:     groups.limpieza.value || null,
-    ubicacion:    groups.ubicacion.value || null,
+    propiedadId: propiedadId,
+    comentario: comentario,
+    puntuacion: groups.general.value,
+    limpieza:   groups.limpieza.value   || null,
+    ubicacion:  groups.ubicacion.value  || null,
     comunicacion: groups.comunicacion.value || null,
-    calidad:      groups.calidad.value || null
+    calidad:    groups.calidad.value    || null
   };
 
   console.log(`💡 Enviando ${method} a ${url}`, body);

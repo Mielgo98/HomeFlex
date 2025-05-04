@@ -59,7 +59,8 @@ public class SecurityConfig {
                 new AntPathRequestMatcher("/js/**"),
                 new AntPathRequestMatcher("/images/**"),
                 new AntPathRequestMatcher("/webjars/**"),
-                new AntPathRequestMatcher("/favicon.ico")
+                new AntPathRequestMatcher("/favicon.ico"),
+                new AntPathRequestMatcher("/media/**")
             );
     }
 

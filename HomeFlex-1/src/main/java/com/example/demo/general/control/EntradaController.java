@@ -8,6 +8,7 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 
 import com.example.demo.propiedad.model.PropiedadDTO;
+import com.example.demo.propiedad.model.PropiedadVO;
 import com.example.demo.propiedad.service.PropiedadService;
 
 @Controller
@@ -18,6 +19,11 @@ public class EntradaController {
   
   @GetMapping({"/", "/index"})
   public String index(Model model) {
+	  
+	  if (!model.containsAttribute("propiedad")) {      // para no
+          model.addAttribute("propiedad", new PropiedadVO()); // pisar redirecciones
+      }
+	  
     List<PropiedadDTO> propiedadesDestacadas = propiedadService.obtenerPropiedadesDestacadas();
     model.addAttribute("propiedadesDestacadas", propiedadesDestacadas);
     
